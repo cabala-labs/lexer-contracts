@@ -7,7 +7,7 @@ This contract is used to manage the roles for different address for Lexer
 
 import "./IAccessControl.sol";
 
-contract AccessControl is IAccessControl {
+contract AccessControl {
     struct RoleData {
         mapping(address => bool) members;
         uint256 memberCount;
