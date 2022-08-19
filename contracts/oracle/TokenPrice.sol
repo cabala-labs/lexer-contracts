@@ -6,7 +6,7 @@ This contract is used to feed, get and guard the price of a ERC20 token
 */
 
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import "@lexer/access/IAccessControl.sol";
+import "../access/IAccessControl.sol";
 
 contract TokenPrice {
     IAccessControl public accessControl;
