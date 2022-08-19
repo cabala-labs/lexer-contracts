@@ -6,11 +6,11 @@ This contract is used to manage the asset in Diamond pool, which holds the top p
 */
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@lexer/diamond/IDiamondPool.sol";
-import "@lexer/diamond/Diamond.sol";
-import "@lexer/oracle/TokenPrice.sol";
+import "./IDiamondPool.sol";
+import "./Diamond.sol";
+import "../oracle/TokenPrice.sol";
 
-contract DiamondPool is IDiamondPool {
+contract DiamondPool {
     Diamond public diamond;
     TokenPrice public tokenPrice;
 
@@ -108,29 +108,30 @@ contract DiamondPool is IDiamondPool {
             IERC20(_token).transferFrom(msg.sender, address(this), _amount);
         }
 
-        // check the proportion impact on the pool
-        (bool isChangePositive, uint256 change) = getProportionImpactSingle(_token, _amount);
+        // // check the proportion impact on the pool
+        // (bool isChangePositive, uint256 change) = getProportionImpactSingle(_token, _amount);
 
         // collect fee based on the proportion change
-        uint256 feePercentage = isChangePositive
-            ? basicFeePercentage * (1 - change)
-            : basicFeePercentage * (1 + change);
+        // uint256 feePercentage = isChangePositive
+        //     ? basicFeePercentage * (1 - change)
+        //     : basicFeePercentage * (1 + change);
 
         // adjust the fee to fit in range
-        feePercentage = feePercentage < lowestFeePercentage
-            ? lowestFeePercentage
-            : feePercentage > highestFeePercentage
-            ? highestFeePercentage
-            : feePercentage;
+        // feePercentage = feePercentage < lowestFeePercentage
+        //     ? lowestFeePercentage
+        //     : feePercentage > highestFeePercentage
+        //     ? highestFeePercentage
+        //     : feePercentage;
 
         // get the price of the _token
         (, uint256 minPrice) = tokenPrice.getPrice(_token);
 
         // calculate the fee
-        uint256 fee = (_amount * minPrice * feePercentage) / PERCENTAGE_BASE;
+        // uint256 fee = (_amount * minPrice * feePercentage) / PERCENTAGE_BASE;
 
         // mint the corresponding token to the _buyer
-        diamond.mint(_buyer, _amount - fee);
+        // diamond.mint(_buyer, _amount - fee);
+        diamond.mint(_buyer, _amount);
     }
 
     function sellDiamond(
@@ -139,9 +140,11 @@ contract DiamondPool is IDiamondPool {
         uint256 _amount // denoted in diamond
     ) external {
         require(isTokenIncluded(_token), "token_not_included");
-        require(tokenBalances[_token] >= _amount, "insufficient_balance");
-        tokenBalances[_token] -= _amount;
+        // get the price of the _token
+        (, uint256 maxPrice) = tokenPrice.getPrice(_token);
+        uint256 withdrawAmount = _amount / maxPrice;
         diamond.burn(_seller, _amount);
+        IERC20(_token).transferFrom(address(this), _seller, withdrawAmount);
     }
 
     function rebalancePool() external {}

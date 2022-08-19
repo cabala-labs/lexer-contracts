@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@lexer/diamond/IDiamondPool.sol";
-import "@lexer/oracle/TokenPrice.sol";
+import "./IDiamondPool.sol";
+import "../oracle/TokenPrice.sol";
 
 contract DiamondSwap {
     struct SwapOrder {
