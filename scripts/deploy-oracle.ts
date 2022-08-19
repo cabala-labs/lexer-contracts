@@ -1,17 +1,14 @@
 import { ethers } from "hardhat";
 
-async function main() {
+async function deployTokenPrice(accessControlAddress: string) {
   const TokenPrice = await ethers.getContractFactory("TokenPrice");
-  const tokenPrice = await TokenPrice.deploy("Hello, Hardhat!");
+  const tokenPrice = await TokenPrice.deploy(accessControlAddress);
 
   await tokenPrice.deployed();
 
   console.log("TokenPrice deployed to:", tokenPrice.address);
+
+  return tokenPrice.address;
 }
 
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+export { deployTokenPrice };
