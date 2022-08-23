@@ -41,7 +41,7 @@ contract DiamondTrade {
         uint256 _amountIn,
         address _indexToken,
         uint256 _positionSize,
-        TradeType tradeType
+        TradeType _tradeType
     ) external {
         (, uint256 collateralMinPrice) = tokenPrice.getPrice(_collateralToken);
 
@@ -49,17 +49,17 @@ contract DiamondTrade {
 
         (uint256 maxEntryPrice, uint256 minEntryPrice) = tokenPrice.getPrice(_indexToken);
 
-        require(_positionSize != 0, "empty position");
-        require(collateralBalance < _positionSize, "below_min_leverage");
+        require(_positionSize != 0, "empty_position");
+        require(collateralBalance < _positionSize, "at_least_1x_leverage");
         require(collateralBalance * maxLeverageLevel <= _positionSize, "over_max_leverage");
 
         OpenPositon memory newOpenPosition = OpenPositon({
             account: msg.sender,
             indexToken: _indexToken,
             totalCollateralBalance: collateralBalance,
-            tradeType: tradeType,
+            tradeType: _tradeType,
             size: _positionSize,
-            entryPrice: tradeType == TradeType.Long ? maxEntryPrice : minEntryPrice
+            entryPrice: _tradeType == TradeType.Long ? maxEntryPrice : minEntryPrice
         });
         _openPositions[msg.sender].push(newOpenPosition);
     }

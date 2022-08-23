@@ -19,6 +19,10 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   }
 });
 
+task("copy-abi", "copy the compiled abi to frontend", async (taskArgs, hre) => {
+  const { abi } = await hre.ethers.getContract("HardhatERC20");
+});
+
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
