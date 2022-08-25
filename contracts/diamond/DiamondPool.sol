@@ -11,6 +11,8 @@ import "./DiamondSwap.sol";
 import "../oracle/TokenPrice.sol";
 import "../token/TokenLibs.sol";
 
+import "hardhat/console.sol";
+
 contract DiamondPool {
     using TokenLibs for uint256;
 
@@ -40,7 +42,7 @@ contract DiamondPool {
     function getPoolTotalBalance() public view returns (uint256) {
         uint256 poolTotalBalance = 0;
         for (uint256 i = 0; i < includedTokens.length; i++) {
-            uint256 tokenBalance = tokenBalances[includedTokens[i]];
+            uint256 tokenBalance = ERC20(includedTokens[i]).balanceOf(address(this));
             tokenBalance = tokenBalance.toDecimal(ERC20(includedTokens[i]).decimals(), 18);
             (uint256 maxPrice, uint256 minPrice) = tokenPrice.getPrice(includedTokens[i]);
             uint256 price = maxPrice;
@@ -48,10 +50,11 @@ contract DiamondPool {
             price = price.toDecimal(8, 18);
             poolTotalBalance += tokenBalance * price;
         }
-        return poolTotalBalance;
+        return poolTotalBalance / 10**18;
     }
 
     function getDiamondPrice() public view returns (uint256) {
+        console.log("getting price");
         // empty vault, 1 diamond = $1 usd
         if (getPoolTotalBalance() == 0) {
             return 1 * 10**18;
@@ -59,7 +62,7 @@ contract DiamondPool {
 
         uint256 poolTotalBalance = getPoolTotalBalance();
         uint256 diamondSupply = diamond.totalSupply();
-        return poolTotalBalance / diamondSupply;
+        return (poolTotalBalance * 10**18) / diamondSupply;
     }
 
     function isTokenIncluded(address _token) public view returns (bool) {
@@ -119,6 +122,7 @@ contract DiamondPool {
         address _token,
         uint256 _amount // denoted in _token
     ) external payable {
+        uint256 diamondPrice = getDiamondPrice();
         // either send ERC20 or native token
         require((_token != address(0)) != (msg.value != 0), "either_ERC20_or_native_token");
 
@@ -152,9 +156,6 @@ contract DiamondPool {
         // get the price of the _token
         (, uint256 minPrice) = tokenPrice.getPrice(_token);
         minPrice = minPrice.toDecimal(8, 18);
-
-        uint256 diamondPrice = getDiamondPrice();
-        console.log(diamondPrice);
 
         //todo this part has all messed up decimals, plz fix lol
         uint256 inSize = _amount.toDecimal(ERC20(_token).decimals(), 18) * minPrice;

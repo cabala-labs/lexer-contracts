@@ -137,6 +137,7 @@ async function approveToken(account: SignerWithAddress, contract: string, token:
   await token.approve(contract, ethers.constants.MaxUint256, { from: account.address });
 }
 
+// todo use parseUnits instead of BigNumber calculation
 async function toTokenDecimal(token: MockToken | Diamond, amount: BigNumber | number) {
   const tokenDecimal = await token.decimals();
   amount = BigNumber.from(amount).mul(BigNumber.from(10).pow(tokenDecimal));
