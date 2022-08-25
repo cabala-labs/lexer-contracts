@@ -6,12 +6,19 @@ This contract is used to manage the asset in Diamond pool, which holds the top p
 */
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./IDiamondPool.sol";
 import "./Diamond.sol";
 import "./DiamondSwap.sol";
 import "../oracle/TokenPrice.sol";
+import "../token/TokenLibs.sol";
 
 contract DiamondPool {
+    using TokenLibs for uint256;
+
+    // enum AskingPrice {
+    //     MAX,
+    //     MIN
+    // }
+
     Diamond public diamond;
     DiamondSwap public diamondSwap;
     TokenPrice public tokenPrice;
@@ -33,9 +40,26 @@ contract DiamondPool {
     function getPoolTotalBalance() public view returns (uint256) {
         uint256 poolTotalBalance = 0;
         for (uint256 i = 0; i < includedTokens.length; i++) {
-            poolTotalBalance += tokenBalances[includedTokens[i]];
+            uint256 tokenBalance = tokenBalances[includedTokens[i]];
+            tokenBalance = tokenBalance.toDecimal(ERC20(includedTokens[i]).decimals(), 18);
+            (uint256 maxPrice, uint256 minPrice) = tokenPrice.getPrice(includedTokens[i]);
+            uint256 price = maxPrice;
+            // uint256 price = askingPrice == AskingPrice.MAX ? maxPrice : minPrice;
+            price = price.toDecimal(8, 18);
+            poolTotalBalance += tokenBalance * price;
         }
         return poolTotalBalance;
+    }
+
+    function getDiamondPrice() public view returns (uint256) {
+        // empty vault, 1 diamond = $1 usd
+        if (getPoolTotalBalance() == 0) {
+            return 1 * 10**18;
+        }
+
+        uint256 poolTotalBalance = getPoolTotalBalance();
+        uint256 diamondSupply = diamond.totalSupply();
+        return poolTotalBalance / diamondSupply;
     }
 
     function isTokenIncluded(address _token) public view returns (bool) {
@@ -127,13 +151,21 @@ contract DiamondPool {
 
         // get the price of the _token
         (, uint256 minPrice) = tokenPrice.getPrice(_token);
+        minPrice = minPrice.toDecimal(8, 18);
+
+        uint256 diamondPrice = getDiamondPrice();
+        console.log(diamondPrice);
+
+        //todo this part has all messed up decimals, plz fix lol
+        uint256 inSize = _amount.toDecimal(ERC20(_token).decimals(), 18) * minPrice;
+        uint256 diamondToMint = inSize / diamondPrice;
 
         // calculate the fee
         // uint256 fee = (_amount * minPrice * feePercentage) / PERCENTAGE_BASE;
 
         // mint the corresponding token to the _buyer
         // diamond.mint(_buyer, _amount - fee);
-        diamond.mint(_buyer, _amount);
+        diamond.mint(_buyer, diamondToMint);
     }
 
     function sellDiamond(
@@ -151,13 +183,17 @@ contract DiamondPool {
 
     function rebalancePool() external {}
 
-    function setSwapAddress(address _swap) external {}
-
     function withdrawToken(
         address _token,
         address _to,
         uint256 _amount
     ) external {
         ERC20(_token).transfer(_to, _amount);
+    }
+
+    function includeToken(address token) external {
+        require(!isTokenIncluded(token), "token_already_included");
+        includedTokens.push(token);
+        tokenBalances[token] = 0;
     }
 }

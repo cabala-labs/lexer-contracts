@@ -16,7 +16,7 @@ library TokenLibs {
         }
 
         if (baseDecimal > targetDecimal) {
-            return amount / (10**(targetDecimal - baseDecimal));
+            return amount / (10**(baseDecimal - targetDecimal));
         }
 
         if (baseDecimal < targetDecimal) {

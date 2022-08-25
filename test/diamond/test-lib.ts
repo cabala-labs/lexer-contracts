@@ -1,9 +1,16 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
-import { AccessControl, DiamondPool, DiamondSwap, MockToken, TokenPrice } from "../../typechain";
+import {
+  AccessControl,
+  Diamond,
+  DiamondPool,
+  DiamondSwap,
+  MockToken,
+  TokenPrice,
+} from "../../typechain";
 
-async function deployContract(deployRequired: { swap?: boolean; trade?: boolean }) {
+async function deployContract(deployRequired?: { swap?: boolean; trade?: boolean }) {
   const AccessControlFactory = await ethers.getContractFactory("AccessControl");
   const accessControl = await AccessControlFactory.deploy();
   await accessControl.deployed();
@@ -12,20 +19,24 @@ async function deployContract(deployRequired: { swap?: boolean; trade?: boolean 
   const tokenPrice = await TokenPriceFactory.deploy(accessControl.address);
   await tokenPrice.deployed();
 
-  const DiamondFactory = await ethers.getContractFactory("Diamond");
-  const diamond = await DiamondFactory.deploy();
-  await diamond.deployed();
-
-  const DiamondPoolFactory = await ethers.getContractFactory("DiamondPool");
-  const diamondPool = await DiamondPoolFactory.deploy(diamond.address, tokenPrice.address);
-  await diamondPool.deployed();
-
   const TokenLibs = await ethers.getContractFactory("TokenLibs");
   const tokenLibs = await TokenLibs.deploy();
   await tokenLibs.deployed();
 
+  const DiamondFactory = await ethers.getContractFactory("Diamond");
+  const diamond = await DiamondFactory.deploy();
+  await diamond.deployed();
+
+  const DiamondPoolFactory = await ethers.getContractFactory("DiamondPool", {
+    libraries: {
+      TokenLibs: tokenLibs.address,
+    },
+  });
+  const diamondPool = await DiamondPoolFactory.deploy(diamond.address, tokenPrice.address);
+  await diamondPool.deployed();
+
   let diamondSwap: DiamondSwap | undefined;
-  if (deployRequired.swap) {
+  if (deployRequired?.swap) {
     const DiamondSwapFactory = await ethers.getContractFactory("DiamondSwap", {
       libraries: {
         TokenLibs: tokenLibs.address,
@@ -113,11 +124,20 @@ async function swapToken(
   }
 }
 
+async function stakeERC20(
+  account: SignerWithAddress,
+  diamondPool: DiamondPool,
+  token: MockToken,
+  amount: BigNumber | number
+) {
+  await diamondPool.buyDiamond(account.address, token.address, amount);
+}
+
 async function approveToken(account: SignerWithAddress, contract: string, token: MockToken) {
   await token.approve(contract, ethers.constants.MaxUint256, { from: account.address });
 }
 
-async function toTokenDecimal(token: MockToken, amount: BigNumber | number) {
+async function toTokenDecimal(token: MockToken | Diamond, amount: BigNumber | number) {
   const tokenDecimal = await token.decimals();
   amount = BigNumber.from(amount).mul(BigNumber.from(10).pow(tokenDecimal));
   return amount;
@@ -154,4 +174,5 @@ export {
   toDecimal,
   grantRight,
   approveToken,
+  stakeERC20,
 };

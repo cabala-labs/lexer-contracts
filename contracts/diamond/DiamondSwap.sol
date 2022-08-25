@@ -105,7 +105,8 @@ contract DiamondSwap {
         uint256 _outSize = _minAmountOut.toDecimal(ERC20(_tokenOut).decimals(), 18).getSize(
             outMaxPrice
         );
-        uint256 actualAmountOut = (_inSize * 10**18) / _outSize;
+        console.log(_inSize, _outSize);
+        uint256 actualAmountOut = (_inSize * 10**18) / outMaxPrice.toDecimal(8, 18);
         actualAmountOut = actualAmountOut.toDecimal(18, ERC20(_tokenOut).decimals());
 
         require(actualAmountOut >= _minAmountOut, "order_not_fulfilled");
