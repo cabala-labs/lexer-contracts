@@ -50,8 +50,10 @@ contract DiamondTrade {
         (uint256 maxEntryPrice, uint256 minEntryPrice) = tokenPrice.getPrice(_indexToken);
 
         require(_positionSize != 0, "empty_position");
-        require(collateralBalance < _positionSize, "at_least_1x_leverage");
+        // require(collateralBalance < _positionSize, "at_least_1x_leverage");
         require(collateralBalance * maxLeverageLevel <= _positionSize, "over_max_leverage");
+
+        // receive collateral
 
         OpenPositon memory newOpenPosition = OpenPositon({
             account: msg.sender,

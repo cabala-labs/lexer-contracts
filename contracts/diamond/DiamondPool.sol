@@ -8,10 +8,12 @@ This contract is used to manage the asset in Diamond pool, which holds the top p
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./IDiamondPool.sol";
 import "./Diamond.sol";
+import "./DiamondSwap.sol";
 import "../oracle/TokenPrice.sol";
 
 contract DiamondPool {
     Diamond public diamond;
+    DiamondSwap public diamondSwap;
     TokenPrice public tokenPrice;
 
     address[] public includedTokens;
@@ -148,4 +150,14 @@ contract DiamondPool {
     }
 
     function rebalancePool() external {}
+
+    function setSwapAddress(address _swap) external {}
+
+    function withdrawToken(
+        address _token,
+        address _to,
+        uint256 _amount
+    ) external {
+        ERC20(_token).transfer(_to, _amount);
+    }
 }

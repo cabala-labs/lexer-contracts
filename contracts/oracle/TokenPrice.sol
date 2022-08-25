@@ -8,6 +8,8 @@ This contract is used to feed, get and guard the price of a ERC20 token
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "../access/IAccessControl.sol";
 
+import "hardhat/console.sol";
+
 contract TokenPrice {
     IAccessControl public accessControl;
 
@@ -27,11 +29,17 @@ contract TokenPrice {
         mapping(uint256 => Price) prices;
     }
 
+    event PriceSubmitted(address indexed token, uint256 roundId, uint256 price);
+
     mapping(address => Token) public tokens;
     bool spreadEnforced;
 
     constructor(address _accessControl) {
         accessControl = IAccessControl(_accessControl);
+    }
+
+    function decimals() external pure returns (uint256) {
+        return 8;
     }
 
     // max, min
@@ -70,11 +78,12 @@ contract TokenPrice {
     }
 
     function setLatestPrice(address _token, uint256 _price) external {
-        // require(accessControl.hasRole(msg.sender, TOKENPRICE_FEEDER), "feeder_only");
-        // require(tokens[_token].isTokenAvaliable, "token_unavailable");
-        // require(_price > 0, "price_zero");
+        require(accessControl.hasRole(msg.sender, TOKENPRICE_FEEDER), "feeder_only");
+        require(tokens[_token].isTokenAvaliable, "token_unavailable");
+        require(_price > 0, "price_zero");
         tokens[_token].prices[tokens[_token].latestRound].price = _price;
-        tokens[_token].latestRound++;
+        emit PriceSubmitted(_token, tokens[_token].latestRound, _price);
+        tokens[_token].latestRound += 1;
     }
 
     function addToken(address _token) external {

@@ -9,17 +9,17 @@ contract MockToken is ERC20 {
         string memory _symbol,
         uint8 _decimal
     ) ERC20(_name, _symbol) {
-        decimal_ = _decimal;
+        decimals_ = _decimal;
     }
 
-    uint8 private decimal_;
+    uint8 private decimals_;
 
-    function decimals() public view override returns (uint8) {
-        return decimal_;
+    function decimals() public view virtual override returns (uint8) {
+        return decimals_;
     }
 
     function setDecimal(uint8 _decimal) public {
-        decimal_ = _decimal;
+        decimals_ = _decimal;
     }
 
     function mint(address _to, uint256 _amount) public {

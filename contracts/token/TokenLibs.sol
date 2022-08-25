@@ -16,13 +16,17 @@ library TokenLibs {
         }
 
         if (baseDecimal > targetDecimal) {
-            return amount / (10 * (targetDecimal - baseDecimal));
+            return amount / (10**(targetDecimal - baseDecimal));
         }
 
         if (baseDecimal < targetDecimal) {
-            return amount * (10 * (targetDecimal - baseDecimal));
+            return amount * (10**(targetDecimal - baseDecimal));
         }
 
         return 0;
+    }
+
+    function getSize(uint256 amount, uint256 price) public pure returns (uint256) {
+        return (amount * price) / 10**8;
     }
 }
