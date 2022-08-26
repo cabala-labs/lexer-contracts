@@ -93,8 +93,8 @@ contract DiamondTrade {
         (uint256 profit, uint256 loss) = getPositionPnL(position);
 
         uint256 closingAmountUSD = position.totalCollateralBalance + profit - loss;
-        (, uint256 minClosingPrice) = tokenPrice.getPrice(_withdrawToken);
-        uint256 closingAmount = closingAmountUSD / minClosingPrice;
+        (uint256 maxTokenPrice, ) = tokenPrice.getPrice(_withdrawToken);
+        uint256 closingAmount = (closingAmountUSD * 10**18) / (maxTokenPrice * 10**10);
         DiamondPool(diamondPoolAddress).withdrawToken(
             _withdrawToken,
             position.account,
