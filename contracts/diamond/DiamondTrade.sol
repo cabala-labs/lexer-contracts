@@ -114,22 +114,22 @@ contract DiamondTrade {
 
         // long and earning
         if (position.tradeType == TradeType.Long && position.entryPrice <= indexPrice) {
-            profit = position.size * (indexPrice - position.entryPrice);
+            profit = position.size.getSize(indexPrice - position.entryPrice);
         }
 
         // long and losing
         if (position.tradeType == TradeType.Long && position.entryPrice > indexPrice) {
-            loss = position.size * (position.entryPrice - indexPrice);
+            loss = position.size.getSize(position.entryPrice - indexPrice);
         }
 
         // short and earning
         if (position.tradeType == TradeType.Short && position.entryPrice >= indexPrice) {
-            profit = position.size * (position.entryPrice - indexPrice);
+            profit = position.size.getSize(position.entryPrice - indexPrice);
         }
 
         // short and losing
         if (position.tradeType == TradeType.Short && position.entryPrice < indexPrice) {
-            loss = position.size * (indexPrice - position.entryPrice);
+            loss = position.size.getSize(indexPrice - position.entryPrice);
         }
 
         return (profit, loss);
