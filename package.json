@@ -1,5 +1,10 @@
 {
   "name": "hardhat-project",
+  "scripts": {
+    "build": "npx hardhat build",
+    "deploy-goerli": "doppler run -- npx hardhat run scripts/deploy-master.ts --network goerli",
+    "deploy-goerli-mocktoken": "doppler run -- npx hardhat run scripts/deploy-mock-tokens.ts --network goerli"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.3",
     "@nomiclabs/hardhat-ethers": "^2.1.0",
@@ -12,7 +17,6 @@
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
     "chai": "^4.3.6",
-    "dotenv": "^10.0.0",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-config-standard": "^16.0.3",

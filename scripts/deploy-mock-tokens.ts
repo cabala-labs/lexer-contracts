@@ -1,23 +1,23 @@
 import { ethers } from "hardhat";
 
 async function deployMockToken() {
-  const TokenPrice = await ethers.getContractFactory("TokenPrice");
-  const tokenPrice = await TokenPrice.attach("0xb33F680d8EdCAbb7A50812B819B45496604F2409");
+  // const TokenPrice = await ethers.getContractFactory("TokenPrice");
+  // const tokenPrice = await TokenPrice.attach("0xb33F680d8EdCAbb7A50812B819B45496604F2409");
 
-  const EUROC = await ethers.getContractFactory("EUROC");
-  const euroc = await EUROC.deploy();
+  const EUROC = await ethers.getContractFactory("MockToken");
+  const euroc = await EUROC.deploy("EUROC", "EUROC", 6);
   await euroc.deployed();
   console.log("EUROC deployed to:", euroc.address);
   // tokenPrice.addToken(euroc.address);
 
-  const USDC = await ethers.getContractFactory("USDC");
-  const usdc = await USDC.deploy();
+  const USDC = await ethers.getContractFactory("MockToken");
+  const usdc = await USDC.deploy("USDC", "USDC", 6);
   await usdc.deployed();
   console.log("USDC deployed to:", usdc.address);
   // tokenPrice.addToken(usdc.address);
 
-  const WETH = await ethers.getContractFactory("WETH");
-  const wETH = await WETH.deploy();
+  const WETH = await ethers.getContractFactory("MockToken");
+  const wETH = await WETH.deploy("WETH", "WETH", 18);
   await wETH.deployed();
   console.log("WETH deployed to:", wETH.address);
 

@@ -11,8 +11,12 @@ async function deployDiamondToken() {
   return diamondToken.address;
 }
 
-async function deployPool(diamondAddress: string, tokenPriceAddress: string) {
-  const DiamondPool = await ethers.getContractFactory("DiamondPool");
+async function deployPool(diamondAddress: string, tokenPriceAddress: string, tokenLibs: string) {
+  const DiamondPool = await ethers.getContractFactory("DiamondPool", {
+    libraries: {
+      TokenLibs: tokenLibs,
+    },
+  });
   const diamondPool = await DiamondPool.deploy(diamondAddress, tokenPriceAddress);
 
   await diamondPool.deployed();
@@ -22,8 +26,12 @@ async function deployPool(diamondAddress: string, tokenPriceAddress: string) {
   return diamondPool.address;
 }
 
-async function deploySwap(poolAddress: string, tokenPriceAddress: string) {
-  const DiamondSwap = await ethers.getContractFactory("DiamondSwap");
+async function deploySwap(poolAddress: string, tokenPriceAddress: string, tokenLibs: string) {
+  const DiamondSwap = await ethers.getContractFactory("DiamondSwap", {
+    libraries: {
+      TokenLibs: tokenLibs,
+    },
+  });
   const diamondSwap = await DiamondSwap.deploy(poolAddress, tokenPriceAddress);
 
   await diamondSwap.deployed();
@@ -44,12 +52,12 @@ async function deployTrade(poolAddress: string, tokenPriceAddress: string) {
   return diamondTrade.address;
 }
 
-async function deployDiamond(tokenPriceAddress: string) {
+async function deployDiamond(tokenPriceAddress: string, tokenLibs: string) {
   const diamondTokenAddress = await deployDiamondToken();
 
-  const poolAddress = await deployPool(diamondTokenAddress, tokenPriceAddress);
+  const poolAddress = await deployPool(diamondTokenAddress, tokenPriceAddress, tokenLibs);
 
-  await deploySwap(poolAddress, tokenPriceAddress);
+  await deploySwap(poolAddress, tokenPriceAddress, tokenLibs);
   await deployTrade(poolAddress, tokenPriceAddress);
 }
 
