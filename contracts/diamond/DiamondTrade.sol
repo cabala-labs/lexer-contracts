@@ -4,8 +4,10 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./DiamondPool.sol";
 import "../oracle/TokenPrice.sol";
+import "../token/TokenLibs.sol";
 
 contract DiamondTrade {
+    using TokenLibs for uint256;
     enum TradeType {
         Long,
         Short
@@ -45,7 +47,9 @@ contract DiamondTrade {
     ) external {
         (, uint256 collateralMinPrice) = tokenPrice.getPrice(_collateralToken);
 
-        uint256 collateralBalance = _amountIn * collateralMinPrice;
+        uint256 collateralBalance = _amountIn
+            .toDecimal(ERC20(_collateralToken).decimals(), 18)
+            .getSize(collateralMinPrice);
 
         (uint256 maxEntryPrice, uint256 minEntryPrice) = tokenPrice.getPrice(_indexToken);
 
