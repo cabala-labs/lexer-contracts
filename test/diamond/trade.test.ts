@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { BigNumber } from "ethers";
 import { wrapEthersProvider } from "hardhat-tracer";
 import {
   Diamond,
@@ -56,24 +57,31 @@ describe.only("Trade for Diamond engine", function () {
 
     expect(await usdc.balanceOf(owner.address)).to.equal(await toTokenDecimal(usdc, 2500));
 
-    await createPosition(
-      diamondTrade,
-      usdc,
-      await toTokenDecimal(usdc, 1000),
-      weth,
-      await toTokenDecimal(weth, 2),
-      0
-    );
+    // log the initial values for the position
+    const collateralBalance = await toTokenDecimal(usdc, 1000);
+    const positionSize = await toTokenDecimal(weth, 2);
+
+    await createPosition(diamondTrade, usdc, collateralBalance, weth, positionSize, 0);
+
     expect(await usdc.balanceOf(owner.address)).to.equal(await toTokenDecimal(usdc, 1500));
     const position = await diamondTrade._openPositions(owner.address, 0);
     await setLatestPrice(tokenPrice, weth, 1550);
 
-    const profit = await diamondTrade.getPositionPnL(position);
+    // find the closing balance
+    const [profit, loss] = await diamondTrade.getPositionPnL(position);
+    console.log("pnl:" + profit + " " + loss);
+    console.log("collateral:" + collateralBalance);
+    let closingBalance = collateralBalance.mul(BigNumber.from(10).pow(12)).add(profit).sub(loss);
+    console.log("test:" + closingBalance);
+    const exitWETHPrice = (await tokenPrice.getPrice(weth.address))[0].mul(
+      BigNumber.from(10).pow(10)
+    );
+    closingBalance = closingBalance.mul(BigNumber.from(10).pow(18)).div(exitWETHPrice);
 
-    console.log(profit);
-
+    // close the trade
     await diamondTrade.closePosition(0, weth.address);
-    expect(await weth.balanceOf(owner.address)).to.equal(await ethers.utils.parseUnits("0.71", 18));
+
+    expect(await weth.balanceOf(owner.address)).to.equal(closingBalance);
   });
   // it("Open a 10x long position on WETH at price $1500 with $1000 USDC as collateral, then close at $1550", async function () {});
   // it("Open a 10x long position on WETH at price $1500 with $1000 USDC as collateral, then close at $1450", async function () {});

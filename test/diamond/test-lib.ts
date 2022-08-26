@@ -50,7 +50,7 @@ async function deployContract(deployRequired?: { swap?: boolean; trade?: boolean
   if (deployRequired?.trade) {
     const DiamondFactoryTrade = await ethers.getContractFactory("DiamondTrade", {
       libraries: {
-        tokenLibs: tokenLibs.address,
+        TokenLibs: tokenLibs.address,
       },
     });
     diamondTrade = await DiamondFactoryTrade.deploy(diamondPool.address, tokenPrice.address);
