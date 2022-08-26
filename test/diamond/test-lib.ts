@@ -1,6 +1,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
+import { DiamondTrade } from "../../typechain";
 import {
   AccessControl,
   Diamond,
@@ -45,6 +46,12 @@ async function deployContract(deployRequired?: { swap?: boolean; trade?: boolean
     diamondSwap = await DiamondSwapFactory.deploy(diamondPool.address, tokenPrice.address);
     await diamondSwap.deployed();
   }
+  let diamondTrade: DiamondTrade | undefined;
+  if (deployRequired?.trade) {
+    const DiamondFactoryTrade = await ethers.getContractFactory("DiamondTrade");
+    diamondTrade = await DiamondFactoryTrade.deploy(diamondPool.address, tokenPrice.address);
+    await diamondTrade.deployed();
+  }
 
   return {
     diamond,
@@ -52,6 +59,7 @@ async function deployContract(deployRequired?: { swap?: boolean; trade?: boolean
     tokenPrice,
     accessControl,
     diamondSwap,
+    diamondTrade,
   };
 }
 
@@ -163,7 +171,25 @@ async function grantRight(accessControl: AccessControl, role: string, account: S
   await accessControl.grantRole(account.address, role);
 }
 
+async function createPosition(
+  diamondTrade: DiamondTrade,
+  collateralToken: MockToken,
+  amount: BigNumber,
+  indexToken: MockToken,
+  positionSize: BigNumber,
+  tradeType: 0 | 1
+) {
+  await diamondTrade.createPostion(
+    collateralToken.address,
+    amount,
+    indexToken.address,
+    positionSize,
+    tradeType
+  );
+}
+
 export {
+  createPosition,
   deployContract,
   deployMockToken,
   initializePool,

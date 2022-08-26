@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "./IDiamondPool.sol";
+import "./DiamondPool.sol";
 import "../oracle/TokenPrice.sol";
 
 contract DiamondTrade {
@@ -55,6 +55,8 @@ contract DiamondTrade {
 
         // receive collateral
 
+        ERC20(_collateralToken).transferFrom(msg.sender, diamondPoolAddress, _amountIn);
+
         OpenPositon memory newOpenPosition = OpenPositon({
             account: msg.sender,
             indexToken: _indexToken,
@@ -89,8 +91,13 @@ contract DiamondTrade {
         uint256 closingAmountUSD = position.totalCollateralBalance + profit - loss;
         (, uint256 minClosingPrice) = tokenPrice.getPrice(_withdrawToken);
         uint256 closingAmount = closingAmountUSD / minClosingPrice;
+        DiamondPool(diamondPoolAddress).withdrawToken(
+            _withdrawToken,
+            position.account,
+            closingAmount
+        );
 
-        ERC20(_withdrawToken).transferFrom(diamondPoolAddress, position.account, closingAmount);
+        // ERC20(_withdrawToken).transferFrom(diamondPoolAddress, position.account, closingAmount);
     }
 
     // return (profit, loss)

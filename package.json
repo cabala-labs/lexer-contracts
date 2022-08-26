@@ -2,7 +2,7 @@
   "name": "hardhat-project",
   "scripts": {
     "build": "npx hardhat build",
-    "test": "doppler run -- npx hardhat test",
+    "test": "doppler run -- npx hardhat test --trace",
     "deploy-goerli": "doppler run -- npx hardhat run scripts/deploy-master.ts --network goerli",
     "deploy-goerli-mocktoken": "doppler run -- npx hardhat run scripts/deploy-mock-tokens.ts --network goerli"
   },
