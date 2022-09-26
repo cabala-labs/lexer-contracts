@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-interface ISapphirePool {
-  function getPoolBalance() external view returns (uint256);
+import "./ICommon.sol";
 
-  function getTokenBalance() external view returns (uint256);
+interface ISapphirePool is ICommon {
+  function getPoolAssetBalance(Spread s) external view returns (uint256);
 
-  function getDiamondPrice() external view returns (uint256);
+  function getPoolTokenBalance() external view returns (uint256);
+
+  function getPoolTokenPrice(Spread s) external view returns (uint256);
 
   function stake(
     address _buyer,
@@ -14,5 +16,9 @@ interface ISapphirePool {
     uint256 _amount // denoted in _token
   ) external;
 
-  function unstake() external;
+  function unstake(
+    address _seller,
+    address _token,
+    uint256 _amount // denoted in _token
+  ) external;
 }
