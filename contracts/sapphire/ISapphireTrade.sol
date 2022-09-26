@@ -22,6 +22,7 @@ interface ISapphireTrade is ICommon {
 
   function getAddressOpenPositions(address _address)
     external
+    view
     returns (OpenPositon[] memory);
 
   function createPosition(
