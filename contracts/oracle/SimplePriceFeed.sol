@@ -35,6 +35,7 @@ contract SimplePriceFeed is ISimplePriceFeed {
   }
 
   function getLatestPrice(address _token) external view returns (Price memory) {
+    if (!tokens[_token].isTokenAvaliable) revert("token_unavaliable");
     return tokens[_token].prices[tokens[_token].latestRound - 1];
   }
 
