@@ -96,12 +96,6 @@ contract SapphirePool is ISapphirePool {
         includedTokens[i]
       );
 
-      console.log(
-        "token balance: %s, token price: %s",
-        tokenBalance,
-        tokenPrice.price[0]
-      );
-
       // add the USD value of the token to the total pool balance
       poolTotalBalance += (tokenBalance * tokenPrice.price[0]) / 10**18;
     }
