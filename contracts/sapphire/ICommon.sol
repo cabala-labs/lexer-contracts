@@ -12,13 +12,13 @@ interface ICommon {
     Short
   }
 
-  struct OpenPositon {
-    uint256 tradeId;
-    address account;
+  struct Position {
     address indexToken;
-    uint256 totalCollateralBalance;
-    uint256 size;
     TradeType tradeType;
     uint256 entryPrice;
+    uint256 size;
+    uint256 totalCollateralBalance;
+    uint256 exitPrice;
+    uint256 incurredFee;
   }
 }

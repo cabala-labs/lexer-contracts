@@ -8,10 +8,10 @@ interface ISapphireTrade is ICommon {
     address indexed _address,
     uint256 _tradeId,
     address _indexToken,
-    uint256 _totalCollateralBalance,
+    TradeType _tradeType,
     uint256 _entryPrice,
     uint256 _size,
-    TradeType _tradeType
+    uint256 _totalCollateralBalance
   );
 
   event PositionClosed(
@@ -19,23 +19,4 @@ interface ISapphireTrade is ICommon {
     uint256 _tradeId,
     uint256 _exitPrice
   );
-
-  function getAddressOpenPositions(address _address)
-    external
-    view
-    returns (OpenPositon[] memory);
-
-  function createPosition(
-    address _collateralToken,
-    uint256 _amountIn,
-    address _indexToken,
-    uint256 _positionSize,
-    TradeType _tradeType
-  ) external;
-
-  function closePosition(
-    address _collateralToken,
-    address _indexToken,
-    uint256 _positionId
-  ) external;
 }
