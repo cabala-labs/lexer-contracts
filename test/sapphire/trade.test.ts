@@ -95,6 +95,10 @@ describe.only("SapphirePool.sol", function () {
       );
 
       // check if the position is opened
+      // check if the contract has received the collateral
+      expect(await eth.balanceOf(sapphireTrade.address)).to.equal(
+        collateralAmount
+      );
       // check if the balance of the nft is 1
       expect(await sapphireNFT.balanceOf(owner.address)).to.be.equal(1);
       // check the metadata of the nft
@@ -135,6 +139,11 @@ describe.only("SapphirePool.sol", function () {
         collateralAmount
       );
 
+      // check the eth balance of the trading contract
+      expect(await eth.balanceOf(sapphireTrade.address)).to.equal(
+        collateralAmount
+      );
+
       // check if the position is opened
       // check if the balance of the nft is 1
       expect(await sapphireNFT.balanceOf(owner.address)).to.be.equal(1);
@@ -152,7 +161,7 @@ describe.only("SapphirePool.sol", function () {
       // );
 
       // check the balance of the user
-      // expect(await eth.balanceOf(owner.address)).to.be.equal(collateralAmount);
+      expect(await eth.balanceOf(owner.address)).to.be.equal(collateralAmount);
     });
   });
 });

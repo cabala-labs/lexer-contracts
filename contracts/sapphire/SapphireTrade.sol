@@ -81,13 +81,30 @@ contract SapphireTrade is ISapphireTrade {
 
   function closePosition(uint256 _positionId, address _withdrawToken) external {
     //todo validaiton
+    address account = sapphireNFT.ownerOf(_positionId);
+    Position memory position = sapphireNFT.getPositonMetadata(_positionId);
+
+    // get the price of the _withdrawToken
+    ISimplePriceFeed.Price memory withdrawTokenPrice = priceFeed.getLatestPrice(
+      _withdrawToken
+    );
+
+    // get the price of the index token
+    ISimplePriceFeed.Price memory indexTokenPrice = priceFeed.getLatestPrice(
+      position.indexToken
+    );
+    uint256 withdrawAmount = (position.totalCollateralBalance * 10**18) /
+      indexTokenPrice.price[0];
+    console.log(withdrawAmount);
+    console.log(IERC20(_withdrawToken).balanceOf(address(this)));
     // calculate the fee for closing position
     // calculate the withdraw amount with pnl and fee
+    // send the withdraw amount to user
+    IERC20(_withdrawToken).transfer(account, withdrawAmount);
     // burn the position NFT
     sapphireNFT.burn(_positionId);
-    // send the withdraw amount to user
 
     // emit event
-    emit PositionClosed(msg.sender, _positionId, 0);
+    emit PositionClosed(account, _positionId, indexTokenPrice.price[0]);
   }
 }

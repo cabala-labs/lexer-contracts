@@ -11,7 +11,15 @@ import "./ICommon.sol";
 contract SapphireNFT is ERC721Enumerable, ICommon {
   constructor() ERC721("SapphireNFT", "SAPPHIRE") {}
 
-  mapping(uint256 => Position) public positions;
+  mapping(uint256 => Position) private positions;
+
+  function getPositonMetadata(uint256 _tokenId)
+    external
+    view
+    returns (Position memory)
+  {
+    return positions[_tokenId];
+  }
 
   function mint(address _to, Position memory _position)
     external
