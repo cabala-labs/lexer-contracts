@@ -5,11 +5,11 @@ pragma solidity ^0.8.0;
 This contract is used to manage the position of the user in Sapphire engine, and treat position as NFT
 */
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "../ERC721T/ERC721T.sol";
 import "./ICommon.sol";
 
-contract SapphireNFT is ERC721Enumerable, ICommon {
-  constructor() ERC721("SapphireNFT", "SAPPHIRE") {}
+contract SapphireNFT is ERC721T, ICommon {
+  constructor() ERC721T("SapphireNFT", "SAPPHIRE") {}
 
   mapping(uint256 => Position) private positions;
 
@@ -25,7 +25,7 @@ contract SapphireNFT is ERC721Enumerable, ICommon {
     external
     returns (uint256)
   {
-    uint256 tokenId = totalSupply();
+    uint256 tokenId = totalMinted();
     positions[tokenId] = _position;
     _safeMint(_to, tokenId);
     return tokenId;
