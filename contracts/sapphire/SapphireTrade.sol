@@ -27,6 +27,7 @@ contract SapphireTrade is ISapphireTrade {
   mapping(address => uint256) public reservedLiquidity;
 
   uint256 public openPositionFeeBPS;
+  uint256 public closePositionFeeBPS;
 
   constructor(
     address _sapphirePoolAddress,
@@ -112,6 +113,7 @@ contract SapphireTrade is ISapphireTrade {
     uint256 withdrawAmount = (position.totalCollateralBalance * 10**18) /
       indexTokenPrice.price[0];
     // debit the fee for closing position
+    _debitClosePositionFee(_tokenId);
     // debit the fee for borrowing
     _debitBorrowFee(_tokenId);
     // calculate the withdraw amount with pnl
@@ -197,5 +199,24 @@ contract SapphireTrade is ISapphireTrade {
   {
     // todo add the spread fee here
     return (_size * openPositionFeeBPS) / 10**18;
+  }
+
+  function _debitClosePositionFee(uint256 tokenId) internal {
+    // calculate the fee
+    uint256 fee = _calculateClosePositionFee(tokenId);
+    // add the fee into incurred fee
+    sapphireNFT.addIncurredFee(tokenId, fee);
+    // emit event
+    emit DebitClosePositionFee(tokenId, fee);
+  }
+
+  function _calculateClosePositionFee(uint256 tokenId)
+    private
+    view
+    returns (uint256)
+  {
+    // get the position
+    Position memory position = sapphireNFT.getPositonMetadata(tokenId);
+    return (position.size * closePositionFeeBPS) / 10**18;
   }
 }
