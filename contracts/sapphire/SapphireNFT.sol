@@ -21,6 +21,26 @@ contract SapphireNFT is ERC721T, ICommon {
     return positions[_tokenId];
   }
 
+  function addIncurredFee(uint256 _tokenId, uint256 _fee) external {
+    positions[_tokenId].incurredFee += _fee;
+  }
+
+  function updateLastBorrowRate(uint256 _tokenId, uint256 _borrowRate)
+    external
+  {
+    positions[_tokenId].lastBorrowRate = _borrowRate;
+  }
+
+  function adjustSize(uint256 _tokenId, uint256 _size) external {
+    positions[_tokenId].size = _size;
+  }
+
+  function adjustCollateralBalance(uint256 _tokenId, uint256 _balance)
+    external
+  {
+    positions[_tokenId].totalCollateralBalance = _balance;
+  }
+
   function mint(address _to, Position memory _position)
     external
     returns (uint256)

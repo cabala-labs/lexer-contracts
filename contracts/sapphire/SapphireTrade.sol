@@ -17,6 +17,15 @@ contract SapphireTrade is ISapphireTrade {
   SapphireNFT sapphireNFT;
   ISimplePriceFeed priceFeed;
 
+  struct BorrowRate {
+    mapping(TradeType => mapping(uint256 => uint256)) borrowRate;
+    uint256 borrowRateUpdatedTimestamp;
+    uint256 borrowRateIntervel;
+  }
+  mapping(address => BorrowRate) public borrowRates;
+
+  mapping(address => uint256) public reservedLiquidity;
+
   constructor(
     address _sapphirePoolAddress,
     address _sapphireNFTAddress,
@@ -64,7 +73,8 @@ contract SapphireTrade is ISapphireTrade {
         tradeType: _tradeType,
         entryPrice: indexTokenPrice.price[0],
         exitPrice: 0,
-        incurredFee: 0
+        incurredFee: 0,
+        lastBorrowRate: _getLatestBorrowRate(_indexToken, _tradeType)
       })
     );
     // emit event
@@ -79,10 +89,10 @@ contract SapphireTrade is ISapphireTrade {
     );
   }
 
-  function closePosition(uint256 _positionId, address _withdrawToken) external {
+  function closePosition(uint256 _tokenId, address _withdrawToken) external {
     //todo validaiton
-    address account = sapphireNFT.ownerOf(_positionId);
-    Position memory position = sapphireNFT.getPositonMetadata(_positionId);
+    address account = sapphireNFT.ownerOf(_tokenId);
+    Position memory position = sapphireNFT.getPositonMetadata(_tokenId);
 
     // get the price of the _withdrawToken
     ISimplePriceFeed.Price memory withdrawTokenPrice = priceFeed.getLatestPrice(
@@ -95,16 +105,82 @@ contract SapphireTrade is ISapphireTrade {
     );
     uint256 withdrawAmount = (position.totalCollateralBalance * 10**18) /
       indexTokenPrice.price[0];
-    console.log(withdrawAmount);
-    console.log(IERC20(_withdrawToken).balanceOf(address(this)));
-    // calculate the fee for closing position
-    // calculate the withdraw amount with pnl and fee
-    // send the withdraw amount to user
+    // debit the fee for closing position
+    // debit the fee for borrowing
+    _debitBorrowFee(_tokenId);
+    // calculate the withdraw amount with pnl
+    // collect the fee
+    // send the withdraw amount minus fee to user
     IERC20(_withdrawToken).transfer(account, withdrawAmount);
     // burn the position NFT
-    sapphireNFT.burn(_positionId);
+    sapphireNFT.burn(_tokenId);
 
     // emit event
-    emit PositionClosed(account, _positionId, indexTokenPrice.price[0]);
+    emit PositionClosed(account, _tokenId, indexTokenPrice.price[0]);
+  }
+
+  function _getLatestBorrowRate(address _indexToken, TradeType _tradeType)
+    internal
+    view
+    returns (uint256)
+  {
+    uint256 borrowRate = borrowRates[_indexToken].borrowRate[_tradeType][
+      borrowRates[_indexToken].borrowRateUpdatedTimestamp
+    ];
+    if (borrowRate == 0) {
+      borrowRate = 1;
+    }
+    return borrowRate;
+  }
+
+  function _getUtilizationRate(address _token) internal view returns (uint256) {
+    return
+      (reservedLiquidity[_token] * 10 * 18) /
+      IERC20(_token).balanceOf(address(sapphirePool));
+  }
+
+  function _canUpdateBorrowRate(address _token) internal view returns (bool) {
+    return
+      borrowRates[_token].borrowRateUpdatedTimestamp +
+        borrowRates[_token].borrowRateIntervel >
+      block.timestamp;
+  }
+
+  function updateBorrowFee(address _token) external {
+    // ? seperate the borrow rate for long short?
+    // check if the update timestamp has exceed limit
+    require(_canUpdateBorrowRate(_token), "not ready to update borrow rate");
+    // get the utilization rate
+    uint256 utilizationRate = _getUtilizationRate(_token);
+    // update the accumulative borrow rate, 0.001% of the utilization rate
+    borrowRates[_token].borrowRate[TradeType.Long][
+      borrowRates[_token].borrowRateUpdatedTimestamp
+    ] = utilizationRate / 100000;
+  }
+
+  function _debitBorrowFee(uint256 _tokenId) internal {
+    // get position metadata
+    Position memory position = sapphireNFT.getPositonMetadata(_tokenId);
+    uint256 fee = _calculateBorrowFee(_tokenId);
+    // add the fee into incurred fee
+    sapphireNFT.addIncurredFee(_tokenId, fee);
+    sapphireNFT.updateLastBorrowRate(
+      _tokenId,
+      _getLatestBorrowRate(position.indexToken, position.tradeType)
+    );
+    emit DebitBorrowFee(_tokenId, fee);
+  }
+
+  function _calculateBorrowFee(uint256 tokenId) private view returns (uint256) {
+    // get the position
+    Position memory position = sapphireNFT.getPositonMetadata(tokenId);
+    // get the total borrow rate over the last position updated block and current block
+    uint256 borrowRate = (_getLatestBorrowRate(
+      position.indexToken,
+      position.tradeType
+    ) - position.lastBorrowRate) * position.size;
+    // calculate the fee
+    uint256 fee = (position.size * borrowRate) / 10**18;
+    return fee;
   }
 }

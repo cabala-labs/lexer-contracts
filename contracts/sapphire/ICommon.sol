@@ -20,5 +20,6 @@ interface ICommon {
     uint256 totalCollateralBalance;
     uint256 exitPrice;
     uint256 incurredFee;
+    uint256 lastBorrowRate;
   }
 }
