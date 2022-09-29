@@ -91,7 +91,6 @@ contract ERC721T is Context, ERC165, IERC721T, IERC721TMetadata {
     override
     returns (uint256)
   {
-    require(owner != address(0), "ERC721T: address zero is not a valid owner");
     return _balances[owner];
   }
 
@@ -105,9 +104,8 @@ contract ERC721T is Context, ERC165, IERC721T, IERC721TMetadata {
     override
     returns (address)
   {
-    address owner = _owners[tokenId];
-    require(owner != address(0), "ERC721T: invalid token ID");
-    return owner;
+    require(_exists(tokenId), "ERC721T: owner query for nonexistent token");
+    return _owners[tokenId];
   }
 
   /**
@@ -290,7 +288,7 @@ contract ERC721T is Context, ERC165, IERC721T, IERC721TMetadata {
    * and stop existing when they are burned (`_burn`).
    */
   function _exists(uint256 tokenId) internal view virtual returns (bool) {
-    return tokenId < _totalSupply; // ERC721T: token exists if tokenId < _totalSupply
+    return tokenId < _totalMinted; // ERC721T: token exists if tokenId < _totalMinted
   }
 
   /**
@@ -360,14 +358,14 @@ contract ERC721T is Context, ERC165, IERC721T, IERC721TMetadata {
 
     _beforeTokenTransfer(address(0), to, tokenId);
 
-    _balances[to] += 1;
-    _owners[tokenId] = to;
-
     // ERC721T: modify total supply and the enumeration of the token
     _totalMinted += 1;
     _totalSupply += 1;
     _addTokenToAllTokensEnumeration(tokenId);
     _addTokenToOwnerEnumeration(to, tokenId);
+
+    _balances[to] += 1;
+    _owners[tokenId] = to;
 
     emit Transfer(address(0), to, tokenId);
 
@@ -394,14 +392,15 @@ contract ERC721T is Context, ERC165, IERC721T, IERC721TMetadata {
     // Clear approvals
     _approve(address(0), tokenId);
 
-    _balances[owner] -= 1;
-    delete _owners[tokenId];
-
     // ERC721T: modify total supply and the enumeration of the token
     _totalSupply -= 1;
     _removeTokenFromAllTokensEnumeration(tokenId);
     _removeTokenFromOwnerEnumeration(owner, tokenId);
     _addTokenToOwnerEnumeration(address(0), tokenId);
+
+    _balances[owner] -= 1;
+    _balances[address(0)] += 1;
+    delete _owners[tokenId];
 
     emit Transfer(owner, address(0), tokenId);
 
