@@ -26,6 +26,8 @@ contract SapphireTrade is ISapphireTrade {
 
   mapping(address => uint256) public reservedLiquidity;
 
+  uint256 public openPositionFeeBPS;
+
   constructor(
     address _sapphirePoolAddress,
     address _sapphireNFTAddress,
@@ -40,7 +42,7 @@ contract SapphireTrade is ISapphireTrade {
     address _account,
     address _indexToken,
     TradeType _tradeType,
-    uint256 _positionSize,
+    uint256 _size,
     address _collateralToken,
     uint256 _collateralAmount
   ) external {
@@ -62,18 +64,21 @@ contract SapphireTrade is ISapphireTrade {
       address(this),
       _collateralAmount
     );
-    //todo calculate the fee for opening position
+
+    // calculate the fee for opening position
+    uint256 openingFee = _calculateOpenPositionFee(_indexToken, _size);
+
     // mint a new positon NFT to the user
     uint256 tokenId = sapphireNFT.mint(
       _account,
       Position({
         indexToken: _indexToken,
         totalCollateralBalance: collateralBalance,
-        size: _positionSize,
+        size: _size,
         tradeType: _tradeType,
         entryPrice: indexTokenPrice.price[0],
         exitPrice: 0,
-        incurredFee: 0,
+        incurredFee: openingFee,
         lastBorrowRate: _getLatestBorrowRate(_indexToken, _tradeType)
       })
     );
@@ -84,9 +89,10 @@ contract SapphireTrade is ISapphireTrade {
       _indexToken,
       _tradeType,
       indexTokenPrice.price[0],
-      _positionSize,
+      _size,
       collateralBalance
     );
+    emit DebitOpenPositionFee(tokenId, openingFee);
   }
 
   function closePosition(uint256 _tokenId, address _withdrawToken) external {
@@ -182,5 +188,14 @@ contract SapphireTrade is ISapphireTrade {
     // calculate the fee
     uint256 fee = (position.size * borrowRate) / 10**18;
     return fee;
+  }
+
+  function _calculateOpenPositionFee(address _indexToken, uint256 _size)
+    private
+    view
+    returns (uint256)
+  {
+    // todo add the spread fee here
+    return (_size * openPositionFeeBPS) / 10**18;
   }
 }
