@@ -99,7 +99,7 @@ contract SapphireTrade is ISapphireTrade {
   function closePosition(uint256 _tokenId, address _withdrawToken) external {
     //todo validaiton
     address account = sapphireNFT.ownerOf(_tokenId);
-    Position memory position = sapphireNFT.getPositonMetadata(_tokenId);
+    Position memory position = sapphireNFT.getPositionMetadata(_tokenId);
 
     // get the price of the _withdrawToken
     ISimplePriceFeed.Price memory withdrawTokenPrice = priceFeed.getLatestPrice(
@@ -168,7 +168,7 @@ contract SapphireTrade is ISapphireTrade {
 
   function _debitBorrowFee(uint256 _tokenId) internal {
     // get position metadata
-    Position memory position = sapphireNFT.getPositonMetadata(_tokenId);
+    Position memory position = sapphireNFT.getPositionMetadata(_tokenId);
     uint256 fee = _calculateBorrowFee(_tokenId);
     // add the fee into incurred fee
     sapphireNFT.addIncurredFee(_tokenId, fee);
@@ -181,7 +181,7 @@ contract SapphireTrade is ISapphireTrade {
 
   function _calculateBorrowFee(uint256 tokenId) private view returns (uint256) {
     // get the position
-    Position memory position = sapphireNFT.getPositonMetadata(tokenId);
+    Position memory position = sapphireNFT.getPositionMetadata(tokenId);
     // get the total borrow rate over the last position updated block and current block
     uint256 borrowRate = (_getLatestBorrowRate(
       position.indexToken,
@@ -216,7 +216,7 @@ contract SapphireTrade is ISapphireTrade {
     returns (uint256)
   {
     // get the position
-    Position memory position = sapphireNFT.getPositonMetadata(tokenId);
+    Position memory position = sapphireNFT.getPositionMetadata(tokenId);
     return (position.size * closePositionFeeBPS) / 10**18;
   }
 }
