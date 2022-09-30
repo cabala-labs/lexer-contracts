@@ -103,7 +103,7 @@ describe.only("SapphirePool.sol", function () {
       expect(await sapphireNFT.balanceOf(owner.address)).to.be.equal(1);
       // check the metadata of the nft
       const nftId = await sapphireNFT.tokenOfOwnerByIndex(owner.address, 0);
-      const nftMetadata = await sapphireNFT.positions(nftId);
+      const nftMetadata = await sapphireNFT.getPositionMetadata(nftId);
       expect(nftMetadata[0]).to.be.equal(eth.address);
       expect(nftMetadata[1]).to.be.equal(0);
       expect(nftMetadata[2]).to.be.equal(ethPrice);
@@ -148,17 +148,14 @@ describe.only("SapphirePool.sol", function () {
       // check if the balance of the nft is 1
       expect(await sapphireNFT.balanceOf(owner.address)).to.be.equal(1);
       // close the trade
-      const positionId = await sapphireNFT.tokenOfOwnerByIndex(
-        owner.address,
-        0
-      );
+      const tokenId = await sapphireNFT.tokenOfOwnerByIndex(owner.address, 0);
 
-      await sapphireTrade.closePosition(positionId, eth.address);
+      await sapphireTrade.closePosition(tokenId, eth.address);
       // check if the position NFT is burned
       expect(await sapphireNFT.balanceOf(owner.address)).to.be.equal(0);
-      // expect(await sapphireNFT.ownerOf(positionId)).to.be.equal(
-      //   ethers.constants.AddressZero
-      // );
+      expect(await sapphireNFT.ownerOf(tokenId)).to.be.equal(
+        ethers.constants.AddressZero
+      );
 
       // check the balance of the user
       expect(await eth.balanceOf(owner.address)).to.be.equal(collateralAmount);
