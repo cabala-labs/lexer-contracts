@@ -13,7 +13,9 @@ contract SapphireNFT is ERC721T, ICommon {
 
   mapping(uint256 => Position) private positions;
 
-  function getPositonMetadata(uint256 _tokenId)
+  address[] public lexerContracts;
+
+  function getPositionMetadata(uint256 _tokenId)
     external
     view
     returns (Position memory)
@@ -53,5 +55,34 @@ contract SapphireNFT is ERC721T, ICommon {
 
   function burn(uint256 _tokenId) external {
     _burn(_tokenId);
+  }
+
+  function _isApprovedOrOwner(address spender, uint256 tokenId)
+    internal
+    view
+    override
+    returns (bool)
+  {
+    // check if the spender is lexer contract
+    for (uint256 i = 0; i < lexerContracts.length; i++) {
+      if (lexerContracts[i] == spender) {
+        return true;
+      }
+    }
+    return super._isApprovedOrOwner(spender, tokenId);
+  }
+
+  function addLexerContract(address _contract) external {
+    lexerContracts.push(_contract);
+  }
+
+  function removeLexerContract(address _contract) external {
+    for (uint256 i = 0; i < lexerContracts.length; i++) {
+      if (lexerContracts[i] == _contract) {
+        lexerContracts[i] = lexerContracts[lexerContracts.length - 1];
+        lexerContracts.pop();
+        break;
+      }
+    }
   }
 }
