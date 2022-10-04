@@ -4,7 +4,8 @@
     "deploy:goerli": "doppler run -- hardhat run scripts/deploy.ts --network goerli",
     "compile": "doppler run -- hardhat compile",
     "test": "doppler run -- hardhat test",
-    "test:full": "doppler run -- hardhat test --trace"
+    "test:full": "doppler run -- hardhat test --trace",
+    "clean": "doppler run -- hardhat clean"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^1.0.2",
