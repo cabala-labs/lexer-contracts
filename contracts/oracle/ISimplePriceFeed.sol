@@ -6,9 +6,14 @@ This contract is used to feed, get and guard the price of a ERC20 token
 */
 
 interface ISimplePriceFeed {
+  enum Spread {
+    HIGH,
+    LOW
+  }
+
   struct Price {
     uint256 timestamp;
-    uint256[2] price;
+    mapping(Spread => uint256) price;
   }
 
   struct Token {
@@ -20,7 +25,23 @@ interface ISimplePriceFeed {
 
   function decimals() external pure returns (uint256);
 
-  function setLatestPrice(address _token, uint256[2] calldata _price) external;
+  function setLatestPrice(
+    address _token,
+    uint256 _highPrice,
+    uint256 _lowPrice
+  ) external;
 
-  function getLatestPrice(address _token) external view returns (Price memory);
+  function getLatestPriceData(address _token, uint256 _roundId)
+    external
+    view
+    returns (
+      uint256,
+      uint256,
+      uint256
+    );
+
+  function getLatestPrice(address _token, Spread _s)
+    external
+    view
+    returns (uint256);
 }

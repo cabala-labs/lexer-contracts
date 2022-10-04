@@ -3,76 +3,17 @@ import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { BigNumber } from "ethers";
-describe.only("SapphirePool.sol", function () {
-  async function _initialDeploymentFixture() {
-    const [owner, accounts] = await ethers.getSigners();
 
-    // deploy sapphire token
-    const SapphireToken = await ethers.getContractFactory("SapphireToken");
-    const sapphireToken = await SapphireToken.deploy();
-    // deploy price feed
-    const SimplePriceFeed = await ethers.getContractFactory("SimplePriceFeed");
-    const simplePriceFeed = await SimplePriceFeed.deploy();
-    // deploy sapphire pool
-    const SapphirePool = await ethers.getContractFactory("SapphirePool");
-    const sapphirePool = await SapphirePool.deploy(
-      sapphireToken.address,
-      simplePriceFeed.address
-    );
-    // deploy sapphire NFT
-    const SapphireNFT = await ethers.getContractFactory("SapphireNFT");
-    const sapphireNFT = await SapphireNFT.deploy();
-    // deploy sapphire trade
-    const SapphireTrade = await ethers.getContractFactory("SapphireTrade");
-    const sapphireTrade = await SapphireTrade.deploy(
-      sapphirePool.address,
-      sapphireNFT.address,
-      simplePriceFeed.address
-    );
+import { _initialDeploymentFixture, _initialSettingsFixture } from "./utils";
 
-    // deploy MockToken token as ETH, BTC and USDC
-    const MockToken = await ethers.getContractFactory("MockToken");
-    const eth = await MockToken.deploy("ETH", "ETH", 18);
-    const btc = await MockToken.deploy("BTC", "BTC", 18);
-    const usdc = await MockToken.deploy("USDC", "USDC", 6);
-
-    // add eth, btc and usdc to price feed
-    await simplePriceFeed.addToken(eth.address);
-    await simplePriceFeed.addToken(btc.address);
-    await simplePriceFeed.addToken(usdc.address);
-
-    // add eth, btc and usdc to sapphire pool
-    await sapphirePool.addToken(eth.address);
-    await sapphirePool.addToken(btc.address);
-    await sapphirePool.addToken(usdc.address);
-
-    return {
-      owner,
-      accounts,
-      sapphireToken,
-      sapphirePool,
-      simplePriceFeed,
-      sapphireNFT,
-      sapphireTrade,
-      eth,
-      btc,
-      usdc,
-    };
-  }
-
-  describe("Deployment", function () {
-    it("Should deploy SapphireTrade.sol", async function () {
-      const { sapphireTrade } = await loadFixture(_initialDeploymentFixture);
-      expect(sapphireTrade.address).to.be.properAddress;
-    });
-  });
+describe("SapphireTrade.sol", function () {
   describe("Role", function () {});
   describe("Revert", function () {});
   describe("Events", function () {});
   describe("Functions", function () {
     it("open a trade of 1 eth", async function () {
       const { sapphireTrade, simplePriceFeed, sapphireNFT, eth, owner } =
-        await loadFixture(_initialDeploymentFixture);
+        await loadFixture(_initialSettingsFixture);
       // get 1 eth
       await eth.mint(owner.address, ethers.utils.parseEther("1"));
       // approve sapphireTrade to spend eth
@@ -80,7 +21,7 @@ describe.only("SapphirePool.sol", function () {
 
       // set the price of eth
       const ethPrice = ethers.utils.parseEther("1500");
-      await simplePriceFeed.setLatestPrice(eth.address, [ethPrice, ethPrice]);
+      await simplePriceFeed.setLatestPrice(eth.address, ethPrice, ethPrice);
 
       // open a trade of 10 eth with 1 eth as collateral
       const collateralAmount = ethers.utils.parseEther("1");
@@ -117,7 +58,7 @@ describe.only("SapphirePool.sol", function () {
 
     it("close a trade of 1 eth", async function () {
       const { sapphireTrade, simplePriceFeed, sapphireNFT, eth, owner } =
-        await loadFixture(_initialDeploymentFixture);
+        await loadFixture(_initialSettingsFixture);
       // get 1 eth
       await eth.mint(owner.address, ethers.utils.parseEther("1"));
       // approve sapphireTrade to spend eth
@@ -125,7 +66,7 @@ describe.only("SapphirePool.sol", function () {
 
       // set the price of eth
       const ethPrice = ethers.utils.parseEther("1500");
-      await simplePriceFeed.setLatestPrice(eth.address, [ethPrice, ethPrice]);
+      await simplePriceFeed.setLatestPrice(eth.address, ethPrice, ethPrice);
 
       // open a trade of 10 eth with 1 eth as collateral
       const collateralAmount = ethers.utils.parseEther("1");

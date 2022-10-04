@@ -5,20 +5,20 @@ pragma solidity ^0.8.0;
 This contract is used to manage the position of the user in Sapphire engine, and treat position as NFT
 */
 
-import "../ERC721T/ERC721T.sol";
-import "./ICommon.sol";
+import "../../ERC721T/ERC721T.sol";
+import "./ISapphireNFT.sol";
 
-contract SapphireNFT is ERC721T, ICommon {
+contract SapphireNFT is ERC721T, ISapphireNFT {
   constructor() ERC721T("SapphireNFT", "SAPPHIRE") {}
 
-  mapping(uint256 => Position) private positions;
+  mapping(uint256 => ISapphireTrade.SapphirePosition) private positions;
 
   address[] public lexerContracts;
 
   function getPositionMetadata(uint256 _tokenId)
     external
     view
-    returns (Position memory)
+    returns (ISapphireTrade.SapphirePosition memory)
   {
     return positions[_tokenId];
   }
@@ -43,7 +43,7 @@ contract SapphireNFT is ERC721T, ICommon {
     positions[_tokenId].totalCollateralBalance = _balance;
   }
 
-  function mint(address _to, Position memory _position)
+  function mint(address _to, ISapphireTrade.SapphirePosition memory _position)
     external
     returns (uint256)
   {
