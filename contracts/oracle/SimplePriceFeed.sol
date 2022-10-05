@@ -17,26 +17,56 @@ contract SimplePriceFeed is ISimplePriceFeed {
 
   mapping(address => Token) public tokens;
 
-  constructor() {}
-
   function decimals() external pure returns (uint256) {
-    return 8;
+    return 18;
   }
 
-  function setLatestPrice(address _token, uint256[2] calldata _price) external {
-    tokens[_token].prices[tokens[_token].latestRound].price = _price;
+  function setLatestPrice(
+    address _token,
+    uint256 _highPrice,
+    uint256 _lowPrice
+  ) external {
+    tokens[_token].prices[tokens[_token].latestRound].price[
+      Spread.HIGH
+    ] = _highPrice;
+    tokens[_token].prices[tokens[_token].latestRound].price[
+      Spread.LOW
+    ] = _lowPrice;
+    tokens[_token].prices[tokens[_token].latestRound].timestamp = block
+      .timestamp;
     emit PriceSubmitted(
       _token,
       tokens[_token].latestRound,
-      _price[0],
-      _price[1]
+      _highPrice,
+      _lowPrice
     );
     tokens[_token].latestRound += 1;
   }
 
-  function getLatestPrice(address _token) external view returns (Price memory) {
-    if (!tokens[_token].isTokenAvaliable) revert("token_unavaliable");
-    return tokens[_token].prices[tokens[_token].latestRound - 1];
+  function getLatestPriceData(address _token, uint256 _roundId)
+    external
+    view
+    returns (
+      uint256,
+      uint256,
+      uint256
+    )
+  {
+    return (
+      tokens[_token].prices[_roundId].price[Spread.HIGH],
+      tokens[_token].prices[_roundId].price[Spread.LOW],
+      tokens[_token].prices[_roundId].timestamp
+    );
+  }
+
+  function getLatestPrice(address _token, Spread _s)
+    external
+    view
+    returns (uint256)
+  {
+    if (!tokens[_token].isTokenAvaliable)
+      revert("simplePriceFeed: token_unavaliable");
+    return tokens[_token].prices[tokens[_token].latestRound - 1].price[_s];
   }
 
   function addToken(address _token) external {

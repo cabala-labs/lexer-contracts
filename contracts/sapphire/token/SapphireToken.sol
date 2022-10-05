@@ -2,8 +2,9 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./ISapphireToken.sol";
 
-contract SapphireToken is ERC20 {
+contract SapphireToken is ISapphireToken, ERC20 {
   constructor() ERC20("Lexer Sapphire", "LEX_SAP") {}
 
   function mint(address _to, uint256 _amount) external {
