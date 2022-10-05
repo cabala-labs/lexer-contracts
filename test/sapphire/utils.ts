@@ -102,7 +102,7 @@ async function _initialSettingsFixture() {
   // deploy MockToken token as ETH, BTC and USDC
   const MockToken = await ethers.getContractFactory("MockToken");
   const eth = await MockToken.deploy("ETH", "ETH", 18);
-  const btc = await MockToken.deploy("BTC", "BTC", 18);
+  const btc = await MockToken.deploy("BTC", "BTC", 8);
   const usdc = await MockToken.deploy("USDC", "USDC", 6);
 
   // add eth, btc and usdc to price feed
@@ -133,7 +133,7 @@ async function _initialSettingsFixture() {
   );
 
   await sapphireReward.setFeeToken(usdc.address);
-
+  await sapphireTrade.setUSDCAddress(usdc.address);
   return {
     owner,
     accounts,
