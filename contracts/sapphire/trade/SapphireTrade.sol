@@ -13,6 +13,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "hardhat/console.sol";
 import "../../token/TokenLibs.sol";
 import "../reward/ISapphireReward.sol";
+import "../swap/ISapphireSwap.sol";
 
 contract SapphireTrade is ISapphireTrade {
   using TokenLibs for uint256;
@@ -20,6 +21,7 @@ contract SapphireTrade is ISapphireTrade {
   ISapphirePool sapphirePool;
   ISapphireNFT sapphireNFT;
   ISapphireReward sapphireReward;
+  ISapphireSwap sapphireSwap;
 
   struct BorrowRate {
     mapping(TradeType => mapping(uint256 => uint256)) borrowRate;
@@ -32,6 +34,12 @@ contract SapphireTrade is ISapphireTrade {
 
   uint256 public openPositionFeeBPS;
   uint256 public closePositionFeeBPS;
+
+  address public usdcAddress;
+
+  function setUSDCAddress(address _usdcAddress) external {
+    usdcAddress = _usdcAddress;
+  }
 
   constructor(
     address _priceFeedAddress,
@@ -136,34 +144,78 @@ contract SapphireTrade is ISapphireTrade {
       msg.sender
     );
 
-    // calculate the withdraw amount with pnl in usd value
+    // calculate the withdraw amount with positionPnL in usd value
     (bool isProfit, uint256 positionPnL) = _calculatePositionPnL(
       _tokenId,
       true
     );
 
-    // send the withdraw amount minus fee to user
-    //! todo: totalCollateralBalance is in USD and positionPnL is in index token
-    uint256 withdrawalAmount = isProfit
-      ? position.totalCollateralBalance + positionPnL
-      : position.totalCollateralBalance - positionPnL;
+    address defaultWithdrawToken = position.tradeType == TradeType.LONG
+      ? position.indexToken
+      : usdcAddress;
 
-    // get the price of the _withdrawToken
-    uint256 withdrawalTokenPrice = priceFeed.getLatestPrice(
-      _withdrawToken,
-      ISimplePriceFeed.Spread.HIGH
-    );
-    // calculate the withdraw amount in _withdrawToken with respect of the _withdrawToken decimals
-    uint256 withdrawAmountInWithdrawToken = withdrawalAmount.toTokenAmount(
-      1e18,
-      withdrawalTokenPrice
-    );
-    IERC20(_withdrawToken).transfer(account, withdrawAmountInWithdrawToken);
-    // burn the position NFT
-    sapphireNFT.burn(_tokenId);
+    // send the collateral & pnl to the user/pool
+    if (isProfit) {
+      // send collateral to the user
+      IERC20(defaultWithdrawToken).transfer(
+        account,
+        position
+          .totalCollateralBalance
+          .toTokenAmount(1e18, indexTokenPrice)
+          .toTokenDecimal(defaultWithdrawToken)
+      );
+      // send pnl - fee to the user
+      sapphirePool.withdraw(
+        account,
+        _withdrawToken,
+        positionPnL.toTokenAmount(1e18, indexTokenPrice).toTokenDecimal(
+          defaultWithdrawToken
+        )
+      );
+    } else {
+      // send the loss to the pool
+      IERC20(defaultWithdrawToken).transferFrom(
+        account,
+        address(this),
+        positionPnL.toTokenAmount(1e18, indexTokenPrice).toTokenDecimal(
+          defaultWithdrawToken
+        )
+      );
+      // send the remaining amount, i.e. collateral - pnl - fee, to the user
+      IERC20(defaultWithdrawToken).transfer(
+        account,
+        (position.totalCollateralBalance - positionPnL)
+          .toTokenAmount(1e18, indexTokenPrice)
+          .toTokenDecimal(defaultWithdrawToken)
+      );
+    }
 
     // emit event
     emit PositionClosed(account, _tokenId, indexTokenPrice);
+
+    // swap the asset if swap is needed
+    if (_withdrawToken != defaultWithdrawToken) {
+      sapphireSwap.swapToken(_withdrawToken, defaultWithdrawToken, positionPnL);
+    }
+  }
+
+  // calculate the amount of the token to withdraw
+  function _calculatePositionWithdrawBalance(uint256 _tokenId)
+    internal
+    view
+    returns (uint256)
+  {
+    (bool isProfit, uint256 positionPnL) = _calculatePositionPnL(
+      _tokenId,
+      true
+    );
+    SapphirePosition memory position = sapphireNFT.getPositionMetadata(
+      _tokenId
+    );
+    return
+      isProfit
+        ? position.totalCollateralBalance + positionPnL
+        : position.totalCollateralBalance - positionPnL;
   }
 
   function _calculatePositionPnL(uint256 _tokenId, bool _withFee)
@@ -196,16 +248,15 @@ contract SapphireTrade is ISapphireTrade {
       isProfit = true;
     }
 
-    uint256 pnl = 0;
+    uint256 positionPnL = 0;
     // if long & profit or short & loss => current price > entry price
     if (
       (position.tradeType == TradeType.LONG && isProfit) ||
       (position.tradeType == TradeType.SHORT && !isProfit)
     ) {
-      pnl = position
-        .size
-        .getSize(indexTokenPrice - position.entryPrice)
-        .getAmount(indexTokenPrice);
+      positionPnL = position.size.getSize(
+        indexTokenPrice - position.entryPrice
+      );
     }
 
     // if long & loss or short & profit => current price < entry price
@@ -213,30 +264,29 @@ contract SapphireTrade is ISapphireTrade {
       (position.tradeType == TradeType.LONG && !isProfit) ||
       (position.tradeType == TradeType.SHORT && isProfit)
     ) {
-      pnl = position
-        .size
-        .getSize(position.entryPrice - indexTokenPrice)
-        .getAmount(indexTokenPrice);
+      positionPnL = position.size.getSize(
+        position.entryPrice - indexTokenPrice
+      );
     }
 
     if (_withFee) {
-      // in loss, add the fee to pnl
+      // in loss, add the fee to positionPnL
       if (!isProfit) {
-        pnl += position.incurredFee;
+        positionPnL += position.incurredFee;
       }
 
-      // in profit, if the pnl > fee
-      if (isProfit && pnl > position.incurredFee) {
-        pnl -= position.incurredFee;
+      // in profit, if the positionPnL > fee
+      if (isProfit && positionPnL > position.incurredFee) {
+        positionPnL -= position.incurredFee;
       }
 
-      // in profit, if the pnl < fee
-      if (isProfit && pnl < position.incurredFee) {
-        pnl = position.incurredFee - pnl;
+      // in profit, if the positionPnL < fee
+      if (isProfit && positionPnL < position.incurredFee) {
+        positionPnL = position.incurredFee - positionPnL;
         isProfit = false;
       }
     }
-    return (isProfit, pnl);
+    return (isProfit, positionPnL);
   }
 
   function _getLatestBorrowRate(address _indexToken, TradeType _tradeType)

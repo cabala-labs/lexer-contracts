@@ -36,7 +36,7 @@ interface ISapphireTrade {
 
   event DebitOpenPositionFee(uint256 indexed _tokenId, uint256 _fee); // include open and depth impact
   event DebitCollateralSwapFee(uint256 indexed _tokenId, uint256 _fee);
-  event DebitIncreaseSizeFee(uint256 indexed _tokenId, uint256 _fee); // to prevent opening at small size and increase size later
+  event DebitIncreaseSizeFee(uint256 indexed _tokenId, uint256 _fee); // to prevent opening at small size and increase size during open
   event DebitBorrowFee(uint256 indexed _tokenId, uint256 _fee);
   event DebitWithdrawalSwapFee(uint256 indexed _tokenId, uint256 _fee);
   event DebitClosePositionFee(uint256 indexed _tokenId, uint256 _fee);

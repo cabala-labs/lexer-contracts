@@ -27,4 +27,10 @@ interface ISapphirePool {
     uint256 _amount,
     uint256 _mintTokenOut
   ) external;
+
+  function withdraw(
+    address _to,
+    address _token,
+    uint256 _amount
+  ) external;
 }

@@ -19,6 +19,8 @@ contract SapphirePool is ISapphirePool {
   struct TokenSetting {
     uint256 targetAmount;
     bool tokenActive;
+    uint256 openLongInterest;
+    uint256 openShortInterest;
   }
 
   event CollectStakeFee(
@@ -91,6 +93,7 @@ contract SapphirePool is ISapphirePool {
       sapphireTokenAmountOut >= _minSapphireOut,
       "SapphirePool: insufficient_sapphire_out"
     );
+
     // take the _token from the _buyer
     IERC20(_token).transferFrom(_buyer, address(this), _amount);
     // collec the fee
@@ -196,5 +199,14 @@ contract SapphirePool is ISapphirePool {
 
   function _calculateUnstakeFee() internal view returns (uint256) {
     return 0;
+  }
+
+  function withdraw(
+    address _to,
+    address _token,
+    uint256 _amount
+  ) external {
+    console.log("bal", IERC20(_token).balanceOf(address(this)));
+    IERC20(_token).transfer(_to, _amount);
   }
 }
