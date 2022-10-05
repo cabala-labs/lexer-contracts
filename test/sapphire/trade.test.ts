@@ -101,5 +101,71 @@ describe("SapphireTrade.sol", function () {
       // check the balance of the user
       expect(await eth.balanceOf(owner.address)).to.be.equal(collateralAmount);
     });
+
+    it("open a trade of long 10 btc with 1.5 btc at 20000, close at 21000", async function () {
+      const {
+        sapphireTrade,
+        simplePriceFeed,
+        sapphireNFT,
+        sapphirePool,
+        btc,
+        owner,
+        accounts,
+      } = await loadFixture(_initialSettingsFixture);
+
+      // stake 50 btc into the pool
+      await btc
+        .connect(accounts[0])
+        .mint(accounts[0].address, ethers.utils.parseUnits("50", 8));
+      await btc
+        .connect(accounts[0])
+        .approve(sapphirePool.address, ethers.constants.MaxUint256);
+      await sapphirePool
+        .connect(accounts[0])
+        .stake(
+          accounts[0].address,
+          btc.address,
+          ethers.utils.parseUnits("50", 8),
+          0
+        );
+
+      // get 1 btc
+      await btc.mint(owner.address, ethers.utils.parseEther("1.5"));
+      // approve sapphireTrade to spend btc
+      await btc.approve(sapphireTrade.address, ethers.constants.MaxUint256);
+
+      // set the price of btc
+      const btcPrice = ethers.utils.parseEther("20000");
+      await simplePriceFeed.setLatestPrice(btc.address, btcPrice, btcPrice);
+
+      // open a trade of 10 btc with 1.5 btc as collateral
+      const collateralAmount = ethers.utils.parseEther("1.5");
+      const sizeAmount = ethers.utils.parseEther("10");
+      await sapphireTrade.createPosition(
+        owner.address,
+        btc.address,
+        0,
+        sizeAmount,
+        btc.address,
+        collateralAmount
+      );
+
+      // set the price of btc
+      const btcPrice2 = ethers.utils.parseEther("21000");
+      await simplePriceFeed.setLatestPrice(btc.address, btcPrice2, btcPrice2);
+
+      const pnl = sizeAmount
+        .mul(btcPrice2.sub(btcPrice))
+        .div(BigNumber.from(10).pow(18));
+
+      // close the position
+      const tokenId = await sapphireNFT.tokenOfOwnerByIndex(owner.address, 0);
+      await sapphireTrade.closePosition(tokenId, btc.address);
+
+      // check the btc balance of the user
+      expect(await btc.balanceOf(owner.address)).to.be.equal(
+        collateralAmount.add(pnl).div(BigNumber.from(10).pow(10))
+      );
+    });
   });
 });
