@@ -1,6 +1,6 @@
 name: Private Node Deployment
 
-run-name: deploy contracts in the branch deployment/private-node to aws dev env
+run-name: deploy contracts to aws hardhat dev env
 
 on:
   push:
@@ -39,11 +39,11 @@ jobs:
           username: ${{ secrets.AWS_HARDHAT_USERNAME }}
           key: ${{ secrets.AWS_HARDHAT_KEY }}
           source: "."
-          target: "/home/ubuntu/lexer-contracts"
+          target: "/home/lexer-contracts"
           rm: true
 
       - name: Deploy contracts to private testnet
         run: |
-          cd "/home/ubuntu/lexer-contracts"
+          cd "/home/lexer-contracts"
           npm run start-hardhat-node
           npm run deploy:local
