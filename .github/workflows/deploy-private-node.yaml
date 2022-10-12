@@ -21,10 +21,14 @@ jobs:
           node-version: 18
           cache: "npm"
 
+      - name: Set up Doppler
+        uses: dopplerhq/cli-action@v1
+
       - name: Build the project
         run: |
           npm install
 
       - name: Test the project
-        run: |
-          npm run test
+        run: doppler run -- hardhat test
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
