@@ -10,7 +10,7 @@ on:
 
 jobs:
   deploy-aws:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-18.04
     steps:
       - name: Checkout the files
         uses: actions/checkout@v2
@@ -31,3 +31,19 @@ jobs:
         run: npm run test
         env:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+
+      - name: Copy files into EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.AWS_HARDHAT_HOST }}
+          username: ${{ secrets.AWS_HARDHAT_USERNAME }}
+          key: ${{ secrets.AWS_HARDHAT_KEY }}
+          source: "."
+          target: "/home/ubuntu/lexer-contracts"
+          rm: true
+
+      - name: Deploy contracts to private testnet
+        run: |
+          cd "/home/ubuntu/lexer-contracts"
+          npm run start-hardhat-node
+          npm run deploy:local
