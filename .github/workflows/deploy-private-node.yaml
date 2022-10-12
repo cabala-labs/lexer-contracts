@@ -27,10 +27,10 @@ jobs:
       - name: Build the project
         run: npm install
 
-      - name: Test the project
-        run: npm run test
-        env:
-          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+      # - name: Test the project
+      #   run: npm run test
+      #   env:
+      #     DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
 
       - name: Copy files into EC2
         uses: appleboy/scp-action@master
