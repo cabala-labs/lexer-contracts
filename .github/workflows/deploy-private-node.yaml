@@ -1,9 +1,12 @@
-name: deploy contracts in the branch deployment/private-node to aws dev env
+name: Private Node Deployment
+
+run-name: deploy contracts in the branch deployment/private-node to aws dev env
 
 on:
   push:
     branches:
       - deployment/private-node
+  workflow_dispatch:
 
 jobs:
   deploy-aws:
