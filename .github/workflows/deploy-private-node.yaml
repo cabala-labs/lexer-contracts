@@ -1,0 +1,27 @@
+name: deploy contracts in the branch deployment/private-node to aws dev env
+
+on:
+  push:
+    branches:
+      - deployment/private-node
+
+jobs:
+  deploy-aws:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout the files
+        uses: actions/checkout@v2
+
+      - name: Set up node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: "npm"
+
+      - name: Build the project
+        run: |
+          npm install
+
+      - name: Test the project
+        run: |
+          npm run test
