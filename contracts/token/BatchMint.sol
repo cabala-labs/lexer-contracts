@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "./token/MockToken.sol";
+import "./MockToken.sol";
 
 contract BatchMint {
   MockToken public wethAddress;

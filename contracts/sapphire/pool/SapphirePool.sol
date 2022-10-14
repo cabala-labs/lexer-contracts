@@ -6,49 +6,60 @@ This contract is used to manage the asset in Sapphire pool, which holds the asse
 */
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../../oracle/ISimplePriceFeed.sol";
+
+import "../../token/TokenLibs.sol";
+
 import "./ISapphirePool.sol";
 import "../token/ISapphireToken.sol";
-import "../../oracle/ISimplePriceFeed.sol";
-import "../../token/TokenLibs.sol";
-import "hardhat/console.sol";
 import "../reward/ISapphireReward.sol";
+import "../nft/ISapphireNFT.sol";
+import "../swap/ISapphireSwap.sol";
+import "../trade/ISapphireTrade.sol";
+
+import "hardhat/console.sol";
 
 contract SapphirePool is ISapphirePool {
   using TokenLibs for uint256;
+  ISimplePriceFeed public priceFeed;
 
-  struct TokenSetting {
-    uint256 targetAmount;
-    bool tokenActive;
-    uint256 openLongInterest;
-    uint256 openShortInterest;
-  }
+  address public sapphireTokenAddress;
+  address public sapphireRewardAddress;
+  address public sapphireNFTAddress;
+  address public sapphireSwapAddress;
+  address public sapphireTradeAddress;
 
-  event CollectStakeFee(
-    address indexed _account,
-    address indexed _token,
-    uint256 _amount
-  );
-  event CollectUnstakeFee(
-    address indexed _account,
-    address indexed _token,
-    uint256 _amount
-  );
-
-  ISimplePriceFeed priceFeed;
-
-  ISapphireToken sapphireToken;
-  ISapphireReward sapphireReward;
+  ISapphireToken public sapphireToken;
+  ISapphireNFT public sapphireNFT;
+  ISapphireSwap public sapphireSwap;
+  ISapphireTrade public sapphireTrade;
+  ISapphireReward public sapphireReward;
 
   mapping(address => TokenSetting) public tokenSettings;
   address[] public includedTokens;
 
-  constructor(address _priceFeedAddress, address _sapphireTokenAddress) {
+  constructor(address _priceFeedAddress) {
     priceFeed = ISimplePriceFeed(_priceFeedAddress);
-    sapphireToken = ISapphireToken(_sapphireTokenAddress);
   }
 
-  function setRewardContract(address _sapphireRewardAddress) external {
+  function setContracts(
+    address _sapphireTokenAddress,
+    address _sapphireNFTAddress,
+    address _sapphireSwapAddress,
+    address _sapphireTradeAddress,
+    address _sapphireRewardAddress
+  ) external {
+    sapphireToken = ISapphireToken(_sapphireTokenAddress);
+    sapphireNFT = ISapphireNFT(_sapphireNFTAddress);
+    sapphireSwap = ISapphireSwap(_sapphireSwapAddress);
+    sapphireTrade = ISapphireTrade(_sapphireTradeAddress);
     sapphireReward = ISapphireReward(_sapphireRewardAddress);
+
+    sapphireTokenAddress = _sapphireTokenAddress;
+    sapphireNFTAddress = _sapphireNFTAddress;
+    sapphireSwapAddress = _sapphireSwapAddress;
+    sapphireTradeAddress = _sapphireTradeAddress;
+    sapphireRewardAddress = _sapphireRewardAddress;
   }
 
   function getPoolAssetBalance(ISimplePriceFeed.Spread s)

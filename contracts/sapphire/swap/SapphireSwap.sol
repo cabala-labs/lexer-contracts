@@ -25,8 +25,8 @@ contract SapphireSwap is ISapphireSwap {
     sapphirePool = ISapphirePool(_sapphirePoolAddress);
   }
 
-  function setRewardContract(address _sapphireRewardAddress) external {
-    sapphireReward = ISapphireReward(_sapphireRewardAddress);
+  function setContract() external {
+    sapphireReward = ISapphireReward(sapphirePool.sapphireRewardAddress());
   }
 
   function swapToken(
@@ -77,5 +77,21 @@ contract SapphireSwap is ISapphireSwap {
       tokenOutAmount
     );
     return tokenOutAmount;
+  }
+
+  function calculateSwapFee(
+    address _tokenIn,
+    address _tokenOut,
+    uint256 _amountIn
+  ) external returns (uint256) {
+    return _calculateSwapFee(_tokenIn, _tokenOut, _amountIn);
+  }
+
+  function _calculateSwapFee(
+    address _tokenIn,
+    address _tokenOut,
+    uint256 _amountIn
+  ) internal returns (uint256) {
+    return 0;
   }
 }

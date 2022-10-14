@@ -13,6 +13,7 @@ interface ISapphireTrade {
     uint256 entryPrice;
     uint256 size;
     uint256 totalCollateralBalance;
+    uint256 totalCollateralAmount;
     uint256 exitPrice;
     uint256 incurredFee;
     uint256 lastBorrowRate;
@@ -25,7 +26,8 @@ interface ISapphireTrade {
     TradeType _tradeType,
     uint256 _entryPrice,
     uint256 _size,
-    uint256 _totalCollateralBalance
+    uint256 _totalCollateralBalance,
+    uint256 _totalCollateralAmount
   );
 
   event PositionClosed(
@@ -34,12 +36,11 @@ interface ISapphireTrade {
     uint256 _exitPrice
   );
 
-  event DebitOpenPositionFee(uint256 indexed _tokenId, uint256 _fee); // include open and depth impact
-  event DebitCollateralSwapFee(uint256 indexed _tokenId, uint256 _fee);
-  event DebitIncreaseSizeFee(uint256 indexed _tokenId, uint256 _fee); // to prevent opening at small size and increase size during open
-  event DebitBorrowFee(uint256 indexed _tokenId, uint256 _fee);
-  event DebitWithdrawalSwapFee(uint256 indexed _tokenId, uint256 _fee);
-  event DebitClosePositionFee(uint256 indexed _tokenId, uint256 _fee);
+  event DebitOpenPositionFee(uint256 indexed _tokenId, uint256 _feeAmount); // include open and depth impact
+  event DebitCollateralSwapFee(uint256 indexed _tokenId, uint256 _feeAmount);
+  event DebitIncreaseSizeFee(uint256 indexed _tokenId, uint256 _feeAmount); // to prevent opening at small size and increase size during open
+  event DebitBorrowFee(uint256 indexed _tokenId, uint256 _feeAmount);
+  event DebitClosePositionFee(uint256 indexed _tokenId, uint256 _feeAmount);
 
-  event CollectIncurredFee(uint256 indexed _tokenId, uint256 _fee);
+  event CollectIncurredFee(uint256 indexed _tokenId, uint256 _feeAmount);
 }

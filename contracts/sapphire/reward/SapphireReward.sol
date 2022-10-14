@@ -14,10 +14,11 @@ import "../../referral/Referral.sol";
 contract SapphireReward {
   uint256 rewardAccumulater;
   mapping(address => uint256) creditedRewards;
+  Referral public referral;
+
   ISapphirePool public sapphirePool;
   ISapphireToken public sapphireToken;
   ISapphireSwap public sapphireSwap;
-  Referral public referral;
 
   address public teamAddress;
   uint256 public teamShare;
@@ -29,16 +30,14 @@ contract SapphireReward {
   event CreditTeamReward(uint256 amount);
   event ClaimReward(address indexed user, uint256 amount);
 
-  constructor(
-    address _sapphirePoolAddress,
-    address _sapphireTokenAddress,
-    address _sapphireSwapAddress,
-    address _referralAddress
-  ) {
+  constructor(address _sapphirePoolAddress, address _referralAddress) {
     sapphirePool = ISapphirePool(_sapphirePoolAddress);
-    sapphireToken = ISapphireToken(_sapphireTokenAddress);
-    sapphireSwap = ISapphireSwap(_sapphireSwapAddress);
     referral = Referral(_referralAddress);
+  }
+
+  function setContract() external {
+    sapphireToken = ISapphireToken(sapphirePool.sapphireTokenAddress());
+    sapphireSwap = ISapphireSwap(sapphirePool.sapphireSwapAddress());
   }
 
   function setFeeToken(address _token) external {

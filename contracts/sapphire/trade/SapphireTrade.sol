@@ -19,9 +19,9 @@ contract SapphireTrade is ISapphireTrade {
   using TokenLibs for uint256;
   ISimplePriceFeed priceFeed;
   ISapphirePool sapphirePool;
-  ISapphireNFT sapphireNFT;
-  ISapphireReward sapphireReward;
   ISapphireSwap sapphireSwap;
+  ISapphireReward sapphireReward;
+  ISapphireNFT sapphireNFT;
 
   struct BorrowRate {
     mapping(TradeType => mapping(uint256 => uint256)) borrowRate;
@@ -35,22 +35,21 @@ contract SapphireTrade is ISapphireTrade {
   uint256 public openPositionFeeBPS;
   uint256 public closePositionFeeBPS;
 
-  address public usdcAddress;
+  address public shortToken;
 
-  function setUSDCAddress(address _usdcAddress) external {
-    usdcAddress = _usdcAddress;
-  }
-
-  constructor(
-    address _priceFeedAddress,
-    address _sapphirePoolAddress,
-    address _sapphireNFTAddress,
-    address _sapphireRewardAddress
-  ) {
+  constructor(address _priceFeedAddress, address _sapphirePoolAddress) {
     priceFeed = ISimplePriceFeed(_priceFeedAddress);
     sapphirePool = ISapphirePool(_sapphirePoolAddress);
-    sapphireNFT = ISapphireNFT(_sapphireNFTAddress);
-    sapphireReward = ISapphireReward(_sapphireRewardAddress);
+  }
+
+  function setContract() external {
+    sapphireSwap = ISapphireSwap(sapphirePool.sapphireSwapAddress());
+    sapphireReward = ISapphireReward(sapphirePool.sapphireRewardAddress());
+    sapphireNFT = ISapphireNFT(sapphirePool.sapphireNFTAddress());
+  }
+
+  function setShortToken(address _shortToken) external {
+    shortToken = _shortToken;
   }
 
   function createPosition(
@@ -58,50 +57,86 @@ contract SapphireTrade is ISapphireTrade {
     address _indexToken,
     TradeType _tradeType,
     uint256 _size,
-    address _collateralToken,
-    uint256 _collateralAmount
+    address _depositToken,
+    uint256 _depositAmount
   ) external {
-    // get the price of the colleteral token
-    uint256 collateralTokenPrice = priceFeed.getLatestPrice(
-      _collateralToken,
-      ISimplePriceFeed.Spread.LOW
-    );
-
-    // balance of the colleteral token
-    uint256 collateralBalance = _collateralAmount.getSize(collateralTokenPrice);
-
-    // get the price of the index token
-    uint256 indexTokenPrice = priceFeed.getLatestPrice(
-      _indexToken,
-      _tradeType == TradeType.LONG
-        ? ISimplePriceFeed.Spread.HIGH
-        : ISimplePriceFeed.Spread.LOW
-    );
-
     // receive collateral from user
-    IERC20(_collateralToken).transferFrom(
-      _account,
-      address(this),
-      _collateralAmount
-    );
+    IERC20(_depositToken).transferFrom(_account, address(this), _depositAmount);
 
-    // calculate the fee for opening position
-    uint256 openingFee = _calculateOpenPositionFee(_indexToken, _size);
+    // init a new position
+    SapphirePosition memory position = SapphirePosition({
+      indexToken: _indexToken,
+      totalCollateralBalance: 0,
+      totalCollateralAmount: _depositAmount,
+      size: _size,
+      tradeType: _tradeType,
+      entryPrice: priceFeed.getLatestPrice(
+        _indexToken,
+        _tradeType == TradeType.LONG
+          ? ISimplePriceFeed.Spread.HIGH
+          : ISimplePriceFeed.Spread.LOW
+      ),
+      exitPrice: 0,
+      incurredFee: _calculateOpenPositionFee(_indexToken, _size),
+      lastBorrowRate: _getLatestBorrowRate(_indexToken, _tradeType)
+    });
+
+    // emit debit open position fee event
+    emit DebitOpenPositionFee(sapphireNFT.totalSupply(), position.incurredFee);
+
+    // check if swap is required
+    address collateralToken = _tradeType == TradeType.LONG
+      ? _indexToken
+      : shortToken;
+
+    if (collateralToken != _depositToken) {
+      // get the price of the deposit token
+      uint256 depositTokenPrice = priceFeed.getLatestPrice(
+        _depositToken,
+        ISimplePriceFeed.Spread.LOW
+      );
+
+      // calculate the swap fee in collateral token
+      uint256 swapFee = sapphireSwap.calculateSwapFee(
+        _depositToken,
+        collateralToken,
+        _depositAmount
+      );
+
+      // debit the swap fee based on the collateral token
+      if (collateralToken == _indexToken) {
+        // to index token
+        swapFee.toTokenAmount(depositTokenPrice, position.entryPrice);
+      } else {
+        // get the price of the collateral token
+        uint256 collateralTokenPrice = priceFeed.getLatestPrice(
+          collateralToken,
+          ISimplePriceFeed.Spread.LOW
+        );
+        // to collateral token
+        swapFee.toTokenAmount(collateralTokenPrice, collateralTokenPrice);
+      }
+
+      // swap to collateralToken
+      _depositAmount = sapphireSwap.swapTokenWithoutFee(
+        _depositToken,
+        collateralToken,
+        _depositAmount
+      );
+
+      // update the position and debit the swap fee
+      position.totalCollateralAmount = _depositAmount;
+      position.incurredFee = position.incurredFee + swapFee;
+      emit DebitOpenPositionFee(sapphireNFT.totalSupply(), swapFee);
+    }
+
+    // take a snapshot of the amount of the collateral token
+    position.totalCollateralBalance = _depositAmount
+      .normalizeDecimal(collateralToken)
+      .getSize(position.entryPrice);
 
     // mint a new positon NFT to the user
-    uint256 tokenId = sapphireNFT.mint(
-      _account,
-      SapphirePosition({
-        indexToken: _indexToken,
-        totalCollateralBalance: collateralBalance,
-        size: _size,
-        tradeType: _tradeType,
-        entryPrice: indexTokenPrice,
-        exitPrice: 0,
-        incurredFee: openingFee,
-        lastBorrowRate: _getLatestBorrowRate(_indexToken, _tradeType)
-      })
-    );
+    uint256 tokenId = sapphireNFT.mint(_account, position);
 
     // emit event
     emit PositionCreated(
@@ -109,11 +144,11 @@ contract SapphireTrade is ISapphireTrade {
       tokenId,
       _indexToken,
       _tradeType,
-      indexTokenPrice,
+      position.entryPrice,
       _size,
-      collateralBalance
+      position.totalCollateralBalance,
+      _depositAmount
     );
-    emit DebitOpenPositionFee(tokenId, openingFee);
   }
 
   function closePosition(uint256 _tokenId, address _withdrawToken) external {
@@ -152,7 +187,7 @@ contract SapphireTrade is ISapphireTrade {
 
     address defaultWithdrawToken = position.tradeType == TradeType.LONG
       ? position.indexToken
-      : usdcAddress;
+      : shortToken;
 
     // send the collateral & pnl to the user/pool
     if (isProfit) {
@@ -190,6 +225,9 @@ contract SapphireTrade is ISapphireTrade {
       );
     }
 
+    // burn the position NFT
+    sapphireNFT.burn(_tokenId);
+
     // emit event
     emit PositionClosed(account, _tokenId, indexTokenPrice);
 
@@ -216,6 +254,14 @@ contract SapphireTrade is ISapphireTrade {
       isProfit
         ? position.totalCollateralBalance + positionPnL
         : position.totalCollateralBalance - positionPnL;
+  }
+
+  function calculatePositionPnL(uint256 _tokenId, bool _withFee)
+    external
+    view
+    returns (bool, uint256)
+  {
+    return _calculatePositionPnL(_tokenId, _withFee);
   }
 
   function _calculatePositionPnL(uint256 _tokenId, bool _withFee)

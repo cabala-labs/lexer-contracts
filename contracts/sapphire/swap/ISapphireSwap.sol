@@ -22,4 +22,10 @@ interface ISapphireSwap {
     address _tokenOut,
     uint256 _amountIn
   ) external returns (uint256);
+
+  function calculateSwapFee(
+    address _tokenIn,
+    address _tokenOut,
+    uint256 _amountIn
+  ) external returns (uint256);
 }
