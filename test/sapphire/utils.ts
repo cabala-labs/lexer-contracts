@@ -31,10 +31,7 @@ async function _initialDeploymentFixture() {
       TokenLibs: tokenLibs.address,
     },
   });
-  const sapphirePool = await SapphirePool.deploy(
-    simplePriceFeed.address,
-    sapphireToken.address
-  );
+  const sapphirePool = await SapphirePool.deploy(simplePriceFeed.address);
 
   // deploy sapphire swap
   const SapphireSwap = await ethers.getContractFactory("SapphireSwap", {
@@ -51,8 +48,6 @@ async function _initialDeploymentFixture() {
   const SapphireReward = await ethers.getContractFactory("SapphireReward");
   const sapphireReward = await SapphireReward.deploy(
     sapphirePool.address,
-    sapphireToken.address,
-    sapphireSwap.address,
     referral.address
   );
 
@@ -64,14 +59,22 @@ async function _initialDeploymentFixture() {
   });
   const sapphireTrade = await SapphireTrade.deploy(
     simplePriceFeed.address,
-    sapphirePool.address,
+    sapphirePool.address
+  );
+
+  // set the contracts in pool
+  await sapphirePool.setContracts(
+    sapphireToken.address,
     sapphireNFT.address,
+    sapphireSwap.address,
+    sapphireTrade.address,
     sapphireReward.address
   );
 
-  // add the reward contract
-  await sapphirePool.setRewardContract(sapphireReward.address);
-  await sapphireSwap.setRewardContract(sapphireReward.address);
+  // refresh the contract addresses in each contract
+  await sapphireTrade.setContract();
+  await sapphireSwap.setContract();
+  await sapphireReward.setContract();
 
   return {
     owner,
@@ -133,7 +136,7 @@ async function _initialSettingsFixture() {
   );
 
   await sapphireReward.setFeeToken(usdc.address);
-  await sapphireTrade.setUSDCAddress(usdc.address);
+  await sapphireTrade.setShortToken(usdc.address);
   return {
     owner,
     accounts,

@@ -11,7 +11,7 @@ describe("SapphireTrade.sol", function () {
   describe("Revert", function () {});
   describe("Events", function () {});
   describe("Functions", function () {
-    it("open a trade of 1 eth", async function () {
+    it("open a long trade of 1 eth", async function () {
       const { sapphireTrade, simplePriceFeed, sapphireNFT, eth, owner } =
         await loadFixture(_initialSettingsFixture);
       // get 1 eth
@@ -52,11 +52,12 @@ describe("SapphireTrade.sol", function () {
       expect(nftMetadata[4]).to.be.equal(
         collateralAmount.mul(ethPrice).div(BigNumber.from(10).pow(18))
       );
-      expect(nftMetadata[5]).to.be.equal(0);
+      expect(nftMetadata[5]).to.be.equal(collateralAmount);
       expect(nftMetadata[6]).to.be.equal(0);
+      expect(nftMetadata[7]).to.be.equal(0);
     });
 
-    it("close a trade of 1 eth", async function () {
+    it("close a long trade of 1 eth", async function () {
       const { sapphireTrade, simplePriceFeed, sapphireNFT, eth, owner } =
         await loadFixture(_initialSettingsFixture);
       // get 1 eth
@@ -97,12 +98,11 @@ describe("SapphireTrade.sol", function () {
       expect(await sapphireNFT.ownerOf(tokenId)).to.be.equal(
         ethers.constants.AddressZero
       );
-
       // check the balance of the user
       expect(await eth.balanceOf(owner.address)).to.be.equal(collateralAmount);
     });
 
-    it("open a trade of long 10 btc with 1.5 btc at 20000, close at 21000", async function () {
+    it("open a long trade of 10 btc with 1.5 btc at 20000, close at 21000", async function () {
       const {
         sapphireTrade,
         simplePriceFeed,
@@ -114,9 +114,7 @@ describe("SapphireTrade.sol", function () {
       } = await loadFixture(_initialSettingsFixture);
 
       // stake 50 btc into the pool
-      await btc
-        .connect(accounts[0])
-        .mint(accounts[0].address, ethers.utils.parseUnits("50", 8));
+      await btc.mint(accounts[0].address, ethers.utils.parseUnits("50", 8));
       await btc
         .connect(accounts[0])
         .approve(sapphirePool.address, ethers.constants.MaxUint256);
@@ -130,7 +128,7 @@ describe("SapphireTrade.sol", function () {
         );
 
       // get 1 btc
-      await btc.mint(owner.address, ethers.utils.parseEther("1.5"));
+      await btc.mint(owner.address, ethers.utils.parseUnits("1.5", 8));
       // approve sapphireTrade to spend btc
       await btc.approve(sapphireTrade.address, ethers.constants.MaxUint256);
 
@@ -139,8 +137,8 @@ describe("SapphireTrade.sol", function () {
       await simplePriceFeed.setLatestPrice(btc.address, btcPrice, btcPrice);
 
       // open a trade of 10 btc with 1.5 btc as collateral
-      const collateralAmount = ethers.utils.parseEther("1.5");
-      const sizeAmount = ethers.utils.parseEther("10");
+      const collateralAmount = ethers.utils.parseUnits("1.5", 8);
+      const sizeAmount = ethers.utils.parseUnits("10", 8);
       await sapphireTrade.createPosition(
         owner.address,
         btc.address,
@@ -154,9 +152,13 @@ describe("SapphireTrade.sol", function () {
       const btcPrice2 = ethers.utils.parseEther("21000");
       await simplePriceFeed.setLatestPrice(btc.address, btcPrice2, btcPrice2);
 
-      const pnl = sizeAmount
-        .mul(btcPrice2.sub(btcPrice))
-        .div(BigNumber.from(10).pow(18));
+      const pnl = sizeAmount // in 8
+        .mul(BigNumber.from(10).pow(10)) // to 18
+        .mul(btcPrice2.sub(btcPrice)) // in 18 * 18
+        .div(BigNumber.from(10).pow(18)) // pnl in usd in 18
+        .mul(BigNumber.from(10).pow(18))
+        .div(btcPrice2) // pnl in btc
+        .div(BigNumber.from(10).pow(10)); // to 8
 
       // close the position
       const tokenId = await sapphireNFT.tokenOfOwnerByIndex(owner.address, 0);
@@ -164,7 +166,190 @@ describe("SapphireTrade.sol", function () {
 
       // check the btc balance of the user
       expect(await btc.balanceOf(owner.address)).to.be.equal(
-        collateralAmount.add(pnl).div(BigNumber.from(10).pow(10))
+        collateralAmount.add(pnl)
+      );
+    });
+
+    it("open a long trade of 2 eth with 1200 usdc at price $1200, close at $1150", async function () {
+      const {
+        sapphireTrade,
+        sapphirePool,
+        simplePriceFeed,
+        sapphireNFT,
+        eth,
+        usdc,
+        owner,
+      } = await loadFixture(_initialSettingsFixture);
+      // get 1200 usdc
+      await usdc.mint(owner.address, ethers.utils.parseUnits("1200", 6));
+      // approve sapphireTrade to spend usdc
+      await usdc.approve(sapphireTrade.address, ethers.constants.MaxUint256);
+
+      // get 2 eth
+      await eth.mint(owner.address, ethers.utils.parseEther("2"));
+      // stake 2 eth into the pool
+      await eth.approve(sapphirePool.address, ethers.constants.MaxUint256);
+      await sapphirePool.stake(
+        owner.address,
+        eth.address,
+        ethers.utils.parseEther("2"),
+        0
+      );
+
+      // set the price of eth
+      const ethPrice = ethers.utils.parseEther("1200");
+      await simplePriceFeed.setLatestPrice(eth.address, ethPrice, ethPrice);
+
+      // open a trade of 2 eth with 1200 usdc as collateral
+      const collateralAmount = ethers.utils.parseUnits("1200", 6);
+      const sizeAmount = ethers.utils.parseEther("2");
+      await sapphireTrade.createPosition(
+        owner.address,
+        eth.address,
+        0,
+        sizeAmount,
+        usdc.address,
+        collateralAmount
+      );
+
+      // set the price of eth
+      const ethPrice2 = ethers.utils.parseEther("1150");
+      await simplePriceFeed.setLatestPrice(eth.address, ethPrice2, ethPrice2);
+
+      const pnl = sizeAmount
+        .mul(ethPrice2.sub(ethPrice))
+        .div(BigNumber.from(10).pow(18));
+
+      // close the position
+      const tokenId = await sapphireNFT.tokenOfOwnerByIndex(owner.address, 0);
+      await sapphireTrade.closePosition(tokenId, eth.address);
+
+      // check the eth balance of the user
+      expect(await eth.balanceOf(owner.address)).to.be.equal(
+        ethers.utils.parseEther("0.913043478260869566")
+      );
+    });
+
+    it("open a long trade of 2 eth with 1200 usdc at price $1200, close at $1250", async function () {
+      const {
+        sapphireTrade,
+        sapphirePool,
+        simplePriceFeed,
+        sapphireNFT,
+        eth,
+        usdc,
+        owner,
+      } = await loadFixture(_initialSettingsFixture);
+      // get 1200 usdc
+      await usdc.mint(owner.address, ethers.utils.parseUnits("1200", 6));
+      // approve sapphireTrade to spend usdc
+      await usdc.approve(sapphireTrade.address, ethers.constants.MaxUint256);
+
+      // get 2 eth
+      await eth.mint(owner.address, ethers.utils.parseEther("2"));
+      // stake 2 eth into the pool
+      await eth.approve(sapphirePool.address, ethers.constants.MaxUint256);
+      await sapphirePool.stake(
+        owner.address,
+        eth.address,
+        ethers.utils.parseEther("2"),
+        0
+      );
+
+      // set the price of eth
+      const ethPrice = ethers.utils.parseEther("1200");
+      await simplePriceFeed.setLatestPrice(eth.address, ethPrice, ethPrice);
+
+      // open a trade of 2 eth with 1200 usdc as collateral
+      const collateralAmount = ethers.utils.parseUnits("1200", 6);
+      const sizeAmount = ethers.utils.parseEther("2");
+      await sapphireTrade.createPosition(
+        owner.address,
+        eth.address,
+        0,
+        sizeAmount,
+        usdc.address,
+        collateralAmount
+      );
+
+      // set the price of eth
+      const ethPrice2 = ethers.utils.parseEther("1150");
+      await simplePriceFeed.setLatestPrice(eth.address, ethPrice2, ethPrice2);
+
+      const pnl = sizeAmount
+        .mul(ethPrice2.sub(ethPrice))
+        .div(BigNumber.from(10).pow(18));
+
+      // close the position
+      const tokenId = await sapphireNFT.tokenOfOwnerByIndex(owner.address, 0);
+      await sapphireTrade.closePosition(tokenId, eth.address);
+
+      // check the eth balance of the user
+      expect(await eth.balanceOf(owner.address)).to.be.equal(
+        ethers.utils.parseEther("0.913043478260869566")
+      );
+    });
+
+    it("open a short trade of 2 eth with 1200 usdc at price $1200, close at $1250", async function () {
+      const {
+        sapphireTrade,
+        sapphirePool,
+        simplePriceFeed,
+        sapphireNFT,
+        eth,
+        usdc,
+        owner,
+      } = await loadFixture(_initialSettingsFixture);
+
+      // get 1200 usdc
+      await usdc.mint(owner.address, ethers.utils.parseUnits("1200", 6));
+      // approve sapphireTrade to spend usdc
+      await usdc.approve(sapphireTrade.address, ethers.constants.MaxUint256);
+
+      // get 2400 usdc
+      await eth.mint(owner.address, ethers.utils.parseEther("2"));
+      // stake 2400 usdc into the pool
+      await eth.approve(sapphirePool.address, ethers.constants.MaxUint256);
+
+      await sapphirePool.stake(
+        owner.address,
+        eth.address,
+        ethers.utils.parseUnits("2400", 6),
+        0
+      );
+
+      // set the price of eth
+      const ethPrice = ethers.utils.parseEther("1200");
+      await simplePriceFeed.setLatestPrice(eth.address, ethPrice, ethPrice);
+
+      // open a short trade of 2 eth with 1200 usdc as collateral
+      const collateralAmount = ethers.utils.parseUnits("1200", 6);
+      const sizeAmount = ethers.utils.parseEther("2");
+
+      await sapphireTrade.createPosition(
+        owner.address,
+        eth.address,
+        1,
+        sizeAmount,
+        usdc.address,
+        collateralAmount
+      );
+
+      // set the price of eth
+      const ethPrice2 = ethers.utils.parseEther("1250");
+      await simplePriceFeed.setLatestPrice(eth.address, ethPrice2, ethPrice2);
+
+      const pnl = sizeAmount
+        .mul(ethPrice.sub(ethPrice2))
+        .div(BigNumber.from(10).pow(18));
+
+      // close the position
+      const tokenId = await sapphireNFT.tokenOfOwnerByIndex(owner.address, 0);
+      await sapphireTrade.closePosition(tokenId, usdc.address);
+
+      // check the eth balance of the user
+      expect(await usdc.balanceOf(owner.address)).to.be.equal(
+        ethers.utils.parseUnits("1100", 6)
       );
     });
   });
