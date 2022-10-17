@@ -91,7 +91,54 @@ contract SapphireSwap is ISapphireSwap {
     address _tokenIn,
     address _tokenOut,
     uint256 _amountIn
-  ) internal returns (uint256) {
+  ) internal view returns (uint256) {
     return 0;
+  }
+
+  function getSwapInfo(
+    address _tokenIn,
+    address _tokenOut,
+    uint256 _amountIn,
+    FeeCollectIn _FeeCollectIn
+  )
+    external
+    view
+    returns (
+      uint256, // amountOut
+      uint256 // fee
+    )
+  {
+    // get the min price of the _tokenIn
+    uint256 tokenInPrice = priceFeed.getLatestPrice(
+      _tokenIn,
+      ISimplePriceFeed.Spread.LOW
+    );
+    // get the max price of the _tokenOut
+    uint256 tokenOutPrice = priceFeed.getLatestPrice(
+      _tokenOut,
+      ISimplePriceFeed.Spread.HIGH
+    );
+    // calculate fee
+    uint256 fee = 0;
+
+    if (_FeeCollectIn == FeeCollectIn.IN) {
+      _amountIn -= fee;
+    }
+    // calculate the amount of _tokenOut to send to the _seller
+    uint256 tokenOutAmount = _amountIn
+      .normalizeDecimal(_tokenIn)
+      .getSize(tokenInPrice)
+      .getAmount(tokenOutPrice)
+      .toTokenDecimal(_tokenOut);
+    if (_FeeCollectIn == FeeCollectIn.OUT) {
+      tokenOutAmount -= fee;
+    }
+    return (tokenOutAmount, fee);
+  }
+
+  function withdrawToken(address _token, uint256 _amount) external {
+    console.log("pool has", IERC20(_token).balanceOf(address(sapphirePool)));
+    console.log("transfer", _amount);
+    IERC20(_token).transfer(msg.sender, _amount);
   }
 }

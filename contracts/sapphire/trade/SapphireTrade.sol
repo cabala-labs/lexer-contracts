@@ -90,39 +90,22 @@ contract SapphireTrade is ISapphireTrade {
       : shortToken;
 
     if (collateralToken != _depositToken) {
-      // get the price of the deposit token
-      uint256 depositTokenPrice = priceFeed.getLatestPrice(
-        _depositToken,
-        ISimplePriceFeed.Spread.LOW
-      );
-
-      // calculate the swap fee in collateral token
-      uint256 swapFee = sapphireSwap.calculateSwapFee(
+      // swap collateral token and calculate the fee of swap in collateral token
+      (uint256 amountOut, uint256 swapFee) = sapphireSwap.getSwapInfo(
         _depositToken,
         collateralToken,
-        _depositAmount
+        _depositAmount,
+        ISapphireSwap.FeeCollectIn.OUT
       );
-
-      // debit the swap fee based on the collateral token
-      if (collateralToken == _indexToken) {
-        // to index token
-        swapFee.toTokenAmount(depositTokenPrice, position.entryPrice);
-      } else {
-        // get the price of the collateral token
-        uint256 collateralTokenPrice = priceFeed.getLatestPrice(
-          collateralToken,
-          ISimplePriceFeed.Spread.LOW
-        );
-        // to collateral token
-        swapFee.toTokenAmount(collateralTokenPrice, collateralTokenPrice);
-      }
 
       // swap to collateralToken
-      _depositAmount = sapphireSwap.swapTokenWithoutFee(
-        _depositToken,
-        collateralToken,
-        _depositAmount
-      );
+      // console.log("swap collateral token");
+      // console.log(_depositToken, _depositAmount);
+      // console.log(collateralToken, amountOut);
+      IERC20(_depositToken).transfer(address(sapphirePool), _depositAmount);
+      sapphirePool.withdraw(address(this), collateralToken, amountOut);
+
+      _depositAmount = amountOut;
 
       // update the position and debit the swap fee
       position.totalCollateralAmount = _depositAmount;
@@ -133,7 +116,7 @@ contract SapphireTrade is ISapphireTrade {
     // take a snapshot of the amount of the collateral token
     position.totalCollateralBalance = _depositAmount
       .normalizeDecimal(collateralToken)
-      .getSize(position.entryPrice);
+      .getSize(_tradeType == TradeType.LONG ? position.entryPrice : 1e18);
 
     // mint a new positon NFT to the user
     uint256 tokenId = sapphireNFT.mint(_account, position);
@@ -185,43 +168,40 @@ contract SapphireTrade is ISapphireTrade {
       true
     );
 
+    // console.log(position.totalCollateralBalance, positionPnL);
+
     address defaultWithdrawToken = position.tradeType == TradeType.LONG
       ? position.indexToken
       : shortToken;
 
     // send the collateral & pnl to the user/pool
+    uint256 pnlAmount = positionPnL
+      .getAmount(position.tradeType == TradeType.LONG ? indexTokenPrice : 1e18)
+      .toTokenDecimal(defaultWithdrawToken);
+    uint256 feeAmount = position
+      .incurredFee
+      .getAmount(position.tradeType == TradeType.LONG ? indexTokenPrice : 1e18)
+      .toTokenDecimal(defaultWithdrawToken);
+
     if (isProfit) {
       // send collateral to the user
       IERC20(defaultWithdrawToken).transfer(
         account,
-        position
-          .totalCollateralBalance
-          .toTokenAmount(1e18, indexTokenPrice)
-          .toTokenDecimal(defaultWithdrawToken)
+        position.totalCollateralAmount
       );
       // send pnl - fee to the user
       sapphirePool.withdraw(
         account,
-        _withdrawToken,
-        positionPnL.toTokenAmount(1e18, indexTokenPrice).toTokenDecimal(
-          defaultWithdrawToken
-        )
+        defaultWithdrawToken,
+        pnlAmount - feeAmount
       );
     } else {
       // send the loss to the pool
-      IERC20(defaultWithdrawToken).transferFrom(
-        account,
-        address(this),
-        positionPnL.toTokenAmount(1e18, indexTokenPrice).toTokenDecimal(
-          defaultWithdrawToken
-        )
-      );
+      IERC20(defaultWithdrawToken).transfer(address(sapphirePool), pnlAmount);
       // send the remaining amount, i.e. collateral - pnl - fee, to the user
       IERC20(defaultWithdrawToken).transfer(
         account,
-        (position.totalCollateralBalance - positionPnL)
-          .toTokenAmount(1e18, indexTokenPrice)
-          .toTokenDecimal(defaultWithdrawToken)
+        position.totalCollateralAmount - pnlAmount - feeAmount
       );
     }
 
@@ -283,13 +263,13 @@ contract SapphireTrade is ISapphireTrade {
     bool isProfit = false;
     if (
       position.tradeType == TradeType.LONG &&
-      position.entryPrice <= indexTokenPrice
+      indexTokenPrice >= position.entryPrice
     ) {
       isProfit = true;
     }
     if (
       position.tradeType == TradeType.SHORT &&
-      position.entryPrice >= indexTokenPrice
+      indexTokenPrice <= position.entryPrice
     ) {
       isProfit = true;
     }
@@ -300,9 +280,9 @@ contract SapphireTrade is ISapphireTrade {
       (position.tradeType == TradeType.LONG && isProfit) ||
       (position.tradeType == TradeType.SHORT && !isProfit)
     ) {
-      positionPnL = position.size.getSize(
-        indexTokenPrice - position.entryPrice
-      );
+      positionPnL = position.size.normalizeDecimal(position.indexToken).getSize(
+          indexTokenPrice - position.entryPrice
+        );
     }
 
     // if long & loss or short & profit => current price < entry price
@@ -310,9 +290,9 @@ contract SapphireTrade is ISapphireTrade {
       (position.tradeType == TradeType.LONG && !isProfit) ||
       (position.tradeType == TradeType.SHORT && isProfit)
     ) {
-      positionPnL = position.size.getSize(
-        position.entryPrice - indexTokenPrice
-      );
+      positionPnL = position.size.normalizeDecimal(position.indexToken).getSize(
+          position.entryPrice - indexTokenPrice
+        );
     }
 
     if (_withFee) {
