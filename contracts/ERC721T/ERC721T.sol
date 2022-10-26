@@ -2,7 +2,7 @@
 // Base Contract for ERC721 Token
 // Modified from OpenZeppelin ERC721T.sol v4.7.0
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.13;
 
 import "./IERC721T.sol";
 import "./IERC721TMetadata.sol";
@@ -52,7 +52,7 @@ contract ERC721T is Context, ERC165, IERC721T, IERC721TMetadata {
   mapping(uint256 => uint256) private _ownedTokensIndex;
 
   // ERC721Enumerable: Array with all unburnt token ids, used for enumeration
-  uint256[] private _allTokens;
+  uint256[] public _allTokens;
 
   // ERC721Enumerable: Mapping from token id to position in the allTokens array
   mapping(uint256 => uint256) private _allTokensIndex;

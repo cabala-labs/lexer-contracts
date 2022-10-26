@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.13;
 
 /* TokenLibs.sol
 This contract is used to provide utils functions for ERC20 tokens
@@ -38,14 +38,6 @@ library TokenLibs {
     } else {
       return _amount / (10**(18 - decimals));
     }
-  }
-
-  function toTokenAmount(
-    uint256 _fromAmount,
-    uint256 _fromPrice,
-    uint256 _toPrice
-  ) public pure returns (uint256) {
-    return getAmount(getSize(_fromAmount, _fromPrice), _toPrice);
   }
 
   // get the amount of the percentage of the total amount, the percentage is in 10 ** 18

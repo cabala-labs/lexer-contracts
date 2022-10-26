@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.13;
 
 /* ISimplePriceFeed.sol
-This contract is used to feed, get and guard the price of a ERC20 token
+This contract is used to feed, get and guard the price of a pair
 */
 
 interface ISimplePriceFeed {
@@ -16,22 +16,29 @@ interface ISimplePriceFeed {
     mapping(Spread => uint256) price;
   }
 
-  struct Token {
-    bool isTokenAvaliable;
-    bool isTokenFeedable;
+  struct Pair {
+    bool isPairAvaliable;
+    bool isPairFeedable;
     uint256 latestRound;
     mapping(uint256 => Price) prices;
   }
 
+  event PriceSubmitted(
+    uint256 indexed pair,
+    uint256 roundId,
+    uint256 highPrice,
+    uint256 lowPrice
+  );
+
   function decimals() external pure returns (uint256);
 
-  function setLatestPrice(
-    address _token,
+  function setPairLatestPrice(
+    uint256 _pair,
     uint256 _highPrice,
     uint256 _lowPrice
   ) external;
 
-  function getLatestPriceData(address _token, uint256 _roundId)
+  function getPairLatestPriceData(uint256 _pair, uint256 _roundId)
     external
     view
     returns (
@@ -40,7 +47,12 @@ interface ISimplePriceFeed {
       uint256
     );
 
-  function getLatestPrice(address _token, Spread _s)
+  function getTokenLatestPrice(address _token, Spread _S)
+    external
+    view
+    returns (uint256);
+
+  function getPairLatestPrice(uint256 _pair, Spread _s)
     external
     view
     returns (uint256);

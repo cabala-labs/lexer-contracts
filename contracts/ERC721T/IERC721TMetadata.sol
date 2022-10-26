@@ -2,7 +2,7 @@
 // Base Contract for ERC721T Token Metadata
 // Modified from OpenZeppelin IERC721Metadata.sol v4.4.1
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.13;
 
 import "./IERC721T.sol";
 

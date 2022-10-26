@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.13;
 
-/* LEX.sol
-This contract is used to create the LEX token, the governing token of the LEX ecosystem.
-*/
-
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./IPoolToken.sol";
 
-contract LEX is ERC20 {
-  constructor() ERC20("LEX", "LEX") {}
-
-  bytes32 private constant LEX_ADMIN = bytes32("LEX_Admin");
+contract PoolToken is IPoolToken, ERC20 {
+  constructor(string memory _name, string memory _symbol)
+    ERC20(_name, _symbol)
+  {}
 
   function mint(address _to, uint256 _amount) external {
     super._mint(_to, _amount);

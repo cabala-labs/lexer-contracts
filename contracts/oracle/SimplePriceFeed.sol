@@ -1,49 +1,35 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.13;
 
 /* SimplePriceFeed.sol
-This contract is used to feed, get and guard the price of a ERC20 token
+This contract is used to feed, get and guard the price of a ERC20 pair
 */
 
 import "./ISimplePriceFeed.sol";
 
 contract SimplePriceFeed is ISimplePriceFeed {
-  event PriceSubmitted(
-    address indexed token,
-    uint256 roundId,
-    uint256 highPrice,
-    uint256 lowPrice
-  );
-
-  mapping(address => Token) public tokens;
+  mapping(uint256 => Pair) public pairs;
+  mapping(address => uint256) public tokenToPair;
 
   function decimals() external pure returns (uint256) {
     return 18;
   }
 
-  function setLatestPrice(
-    address _token,
+  function setPairLatestPrice(
+    uint256 _pair,
     uint256 _highPrice,
     uint256 _lowPrice
   ) external {
-    tokens[_token].prices[tokens[_token].latestRound].price[
+    pairs[_pair].prices[pairs[_pair].latestRound].price[
       Spread.HIGH
     ] = _highPrice;
-    tokens[_token].prices[tokens[_token].latestRound].price[
-      Spread.LOW
-    ] = _lowPrice;
-    tokens[_token].prices[tokens[_token].latestRound].timestamp = block
-      .timestamp;
-    emit PriceSubmitted(
-      _token,
-      tokens[_token].latestRound,
-      _highPrice,
-      _lowPrice
-    );
-    tokens[_token].latestRound += 1;
+    pairs[_pair].prices[pairs[_pair].latestRound].price[Spread.LOW] = _lowPrice;
+    pairs[_pair].prices[pairs[_pair].latestRound].timestamp = block.timestamp;
+    emit PriceSubmitted(_pair, pairs[_pair].latestRound, _highPrice, _lowPrice);
+    pairs[_pair].latestRound += 1;
   }
 
-  function getLatestPriceData(address _token, uint256 _roundId)
+  function getPairLatestPriceData(uint256 _pair, uint256 _roundId)
     external
     view
     returns (
@@ -53,27 +39,39 @@ contract SimplePriceFeed is ISimplePriceFeed {
     )
   {
     return (
-      tokens[_token].prices[_roundId].price[Spread.HIGH],
-      tokens[_token].prices[_roundId].price[Spread.LOW],
-      tokens[_token].prices[_roundId].timestamp
+      pairs[_pair].prices[_roundId].price[Spread.HIGH],
+      pairs[_pair].prices[_roundId].price[Spread.LOW],
+      pairs[_pair].prices[_roundId].timestamp
     );
   }
 
-  function getLatestPrice(address _token, Spread _s)
+  function getPairLatestPrice(uint256 _pair, Spread _s)
     external
     view
     returns (uint256)
   {
-    if (!tokens[_token].isTokenAvaliable)
-      revert("simplePriceFeed: token_unavaliable");
-    return tokens[_token].prices[tokens[_token].latestRound - 1].price[_s];
+    if (!pairs[_pair].isPairAvaliable)
+      revert("simplePriceFeed: pair_unavaliable");
+    return pairs[_pair].prices[pairs[_pair].latestRound - 1].price[_s];
   }
 
-  function addToken(address _token) external {
-    tokens[_token].isTokenAvaliable = true;
+  function getTokenLatestPrice(address _token, Spread _S)
+    external
+    view
+    returns (uint256)
+  {
+    require(tokenToPair[_token] != 0, "simplePriceFeed: token_not_mapped");
+    return
+      pairs[tokenToPair[_token]]
+        .prices[pairs[tokenToPair[_token]].latestRound - 1]
+        .price[_S];
   }
 
-  function removeToken(address _token) external {
-    tokens[_token].isTokenAvaliable = false;
+  function addPair(uint256 _pair) external {
+    pairs[_pair].isPairAvaliable = true;
+  }
+
+  function removePair(uint256 _pair) external {
+    pairs[_pair].isPairAvaliable = false;
   }
 }

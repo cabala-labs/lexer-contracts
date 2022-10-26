@@ -2,7 +2,7 @@
 // Base Contract for ERC721T Token Interface
 // Modified from OpenZeppelin IERC721 v4.7.0
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
