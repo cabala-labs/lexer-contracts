@@ -27,11 +27,7 @@ const config: HardhatUserConfig = {
     goerli: {
       url: process.env.GOERLI_URL as string,
       // url: "https://goerli.infura.io/v3/1175d7a914d241fdb6f4f2086fb07be1",
-      accounts: [
-        process.env.PRIVATE_KEY as string,
-        "2edaef650fe077f6ebc1956f9f201a02a51122186665a9cdbecb3899f814d086",
-        "3c80157f0e237be8fa4ecd9b3cb5aadc06c116014c92754c3bf14d94dbe21773",
-      ],
+      accounts: [process.env.PRIVATE_KEY as string],
       gasPrice: 12000000000,
     },
     hardhat: {},
