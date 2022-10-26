@@ -2,10 +2,12 @@
   "name": "hardhat-project",
   "scripts": {
     "deploy:goerli": "doppler run -- hardhat run scripts/deploy.ts --network goerli",
+    "deploy:local": "doppler run -- hardhat run scripts/deploy.ts --network hardhat",
     "compile": "doppler run -- hardhat compile",
     "test": "doppler run -- hardhat test",
     "test:full": "doppler run -- hardhat test --trace",
-    "clean": "doppler run -- hardhat clean"
+    "clean": "doppler run -- hardhat clean && rm -rf cache && rm -rf bin",
+    "start-node": "doppler run -- hardhat node"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^1.0.2",
