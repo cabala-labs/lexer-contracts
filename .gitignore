@@ -11,3 +11,7 @@ artifacts
 
 .dccache
 .DS_Store
+
+bin
+
+*address.json
