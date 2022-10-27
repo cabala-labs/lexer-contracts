@@ -3,41 +3,29 @@ import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
+import { deployOracle, deployMockTokens } from "../deploy.utils";
+import { pairs, findPairIndex } from "./pairs.constants";
 enum Spread {
   HIGH,
   LOW,
 }
 
 describe("SimplePriceFeed.sol", function () {
-  async function _initialDeploymentFixture() {
-    const [owner, accounts] = await ethers.getSigners();
-    const SimplePriceFeed = await ethers.getContractFactory("SimplePriceFeed");
-    const simplePriceFeed = await SimplePriceFeed.deploy();
+  async function fixture() {
+    const simplePriceFeed = await loadFixture(deployOracle);
+    const { usdc, wbtc, weth } = await loadFixture(deployMockTokens);
 
-    // deploy MockToken token as ETH, BTC and USDC
-    const MockToken = await ethers.getContractFactory("MockToken");
-    const eth = await MockToken.deploy("ETH", "ETH", 18);
-    const btc = await MockToken.deploy("BTC", "BTC", 18);
-    const usdc = await MockToken.deploy("USDC", "USDC", 6);
+    // add all pairs to price feed
+    for (const pairId of Object.keys(pairs)) {
+      await simplePriceFeed.addPair(pairId);
+    }
 
-    return { owner, accounts, simplePriceFeed, eth, btc, usdc };
-  }
-
-  async function _initialSettingsFixture() {
-    const { owner, accounts, simplePriceFeed, eth, btc, usdc } =
-      await loadFixture(_initialDeploymentFixture);
-
-    // add eth, btc and usdc to price feed
-    await simplePriceFeed.addToken(eth.address);
-    await simplePriceFeed.addToken(btc.address);
-    await simplePriceFeed.addToken(usdc.address);
-
-    return { owner, accounts, simplePriceFeed, eth, btc, usdc };
+    return { simplePriceFeed, usdc, wbtc, weth };
   }
 
   describe("Deployment", function () {
     it("initial deployment", async function () {
-      await loadFixture(_initialDeploymentFixture);
+      await loadFixture(fixture);
     });
   });
   describe("Role", function () {});
@@ -45,40 +33,62 @@ describe("SimplePriceFeed.sol", function () {
   describe("Events", function () {});
   describe("Functions", function () {
     it("set price for eth, btc and usdc", async function () {
-      const { simplePriceFeed, eth, btc, usdc } = await loadFixture(
-        _initialSettingsFixture
-      );
+      const { simplePriceFeed } = await loadFixture(fixture);
       const ethPrice = ethers.utils.parseEther("1500");
       const btcPrice = ethers.utils.parseEther("20000");
-      const usdcPrice = ethers.utils.parseUnits("1", 6);
-      await simplePriceFeed.setLatestPrice(eth.address, ethPrice, ethPrice);
+      const usdcPrice = ethers.utils.parseEther("1");
+
+      await simplePriceFeed.setPairLatestPrice(
+        findPairIndex("ETH/USD"),
+        ethPrice,
+        ethPrice
+      );
+      await simplePriceFeed.setPairLatestPrice(
+        findPairIndex("BTC/USD"),
+        btcPrice,
+        btcPrice
+      );
+      await simplePriceFeed.setPairLatestPrice(
+        findPairIndex("USDC/USD"),
+        usdcPrice,
+        usdcPrice
+      );
 
       expect(
-        await simplePriceFeed.getLatestPrice(eth.address, Spread.HIGH)
+        await simplePriceFeed.getPairLatestPrice(
+          findPairIndex("ETH/USD"),
+          Spread.HIGH
+        )
       ).to.be.equal(ethPrice);
-
-      await simplePriceFeed.setLatestPrice(btc.address, btcPrice, btcPrice);
       expect(
-        await simplePriceFeed.getLatestPrice(btc.address, Spread.HIGH)
+        await simplePriceFeed.getPairLatestPrice(
+          findPairIndex("BTC/USD"),
+          Spread.HIGH
+        )
       ).to.be.equal(btcPrice);
-
-      await simplePriceFeed.setLatestPrice(usdc.address, usdcPrice, usdcPrice);
-
       expect(
-        await simplePriceFeed.getLatestPrice(usdc.address, Spread.HIGH)
+        await simplePriceFeed.getPairLatestPrice(
+          findPairIndex("USDC/USD"),
+          Spread.HIGH
+        )
       ).to.be.equal(usdcPrice);
     });
 
     it("set eth price 5 times", async function () {
-      const { simplePriceFeed, eth } = await loadFixture(
-        _initialSettingsFixture
-      );
+      const { simplePriceFeed } = await loadFixture(fixture);
       const prices = [1500, 1700, 0.01, 55, 1234.4];
       for (const price of prices) {
         let ethPrice = ethers.utils.parseEther(price.toString());
-        await simplePriceFeed.setLatestPrice(eth.address, ethPrice, ethPrice);
+        await simplePriceFeed.setPairLatestPrice(
+          findPairIndex("ETH/USD"),
+          ethPrice,
+          ethPrice
+        );
         expect(
-          await simplePriceFeed.getLatestPrice(eth.address, Spread.HIGH)
+          await simplePriceFeed.getPairLatestPrice(
+            findPairIndex("ETH/USD"),
+            Spread.HIGH
+          )
         ).to.be.equal(ethPrice);
       }
     });
