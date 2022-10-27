@@ -8,8 +8,11 @@ import "../oracle/ISimplePriceFeed.sol";
 import "../token/TokenLibs.sol";
 import "../atm/IATM.sol";
 import "../reward/IBaseReward.sol";
+import "../properties/FundWithdrawable.sol";
 
-abstract contract BasePool is IBasePool {
+import "hardhat/console.sol";
+
+abstract contract BasePool is IBasePool, FundWithdrawable {
   using TokenLibs for uint256;
 
   // ---------- contract storage ----------
@@ -60,10 +63,8 @@ abstract contract BasePool is IBasePool {
     uint256 _minAmountOut
   ) external returns (uint256 _amountOut) {
     require(tokens[_tokenIn].tokenActive, "SapPool: token not included");
-
     // transfer the token
     atm.transferFrom(_tokenIn, msg.sender, address(this), _amountIn);
-
     // collect staking fee
     uint256 fee = _calStakeFee(_tokenIn, _amountIn);
     reward.collectFee(address(this), _tokenIn, fee, msg.sender);
@@ -131,14 +132,6 @@ abstract contract BasePool is IBasePool {
         break;
       }
     }
-  }
-
-  function withdrawFund(
-    address _token,
-    address _to,
-    uint256 _amount
-  ) external {
-    IERC20(_token).transfer(_to, _amount);
   }
 
   // ---------- view functions ----------

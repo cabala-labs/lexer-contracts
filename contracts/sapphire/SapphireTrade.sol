@@ -14,6 +14,18 @@ contract SapphireTrade is BaseTrade {
   {}
 
   // ---------- storage setters ----------
+  function setShortToken(address _shortToken) external {
+    require(address(shortToken) == address(0), "SapTrade:short_token_exists");
+    shortToken = _shortToken;
+  }
+
+  function setPairCollateral(uint256 _pair, address _token) external {
+    require(
+      pairCollateral[_pair] == address(0),
+      "SapTrade:pair_collateral_exists"
+    );
+    pairCollateral[_pair] = _token;
+  }
 
   // ---------- action functions ----------
 

@@ -18,7 +18,6 @@ interface ISimplePriceFeed {
 
   struct Pair {
     bool isPairAvaliable;
-    bool isPairFeedable;
     uint256 latestRound;
     mapping(uint256 => Price) prices;
   }

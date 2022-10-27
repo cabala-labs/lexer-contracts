@@ -13,7 +13,7 @@ contract SapphirePool is BasePool, ISwappablePool {
 
   // ---------- constructor ----------
   constructor(address _priceFeedAddress, address _atmAddress)
-    BasePool("SapPool", _priceFeedAddress, _atmAddress)
+    BasePool("SapPool", _atmAddress, _priceFeedAddress)
   {}
 
   // ---------- storage setters ----------

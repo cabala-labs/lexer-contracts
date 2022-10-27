@@ -6,6 +6,7 @@ This contract is used to feed, get and guard the price of a ERC20 pair
 */
 
 import "./ISimplePriceFeed.sol";
+import "hardhat/console.sol";
 
 contract SimplePriceFeed is ISimplePriceFeed {
   mapping(uint256 => Pair) public pairs;
@@ -20,6 +21,7 @@ contract SimplePriceFeed is ISimplePriceFeed {
     uint256 _highPrice,
     uint256 _lowPrice
   ) external {
+    require(pairs[_pair].isPairAvaliable, "simplePriceFeed:pair_unavaliable");
     pairs[_pair].prices[pairs[_pair].latestRound].price[
       Spread.HIGH
     ] = _highPrice;
@@ -38,6 +40,7 @@ contract SimplePriceFeed is ISimplePriceFeed {
       uint256
     )
   {
+    require(pairs[_pair].isPairAvaliable, "simplePriceFeed:pair_unavaliable");
     return (
       pairs[_pair].prices[_roundId].price[Spread.HIGH],
       pairs[_pair].prices[_roundId].price[Spread.LOW],
@@ -50,8 +53,7 @@ contract SimplePriceFeed is ISimplePriceFeed {
     view
     returns (uint256)
   {
-    if (!pairs[_pair].isPairAvaliable)
-      revert("simplePriceFeed: pair_unavaliable");
+    require(pairs[_pair].isPairAvaliable, "simplePriceFeed:pair_unavaliable");
     return pairs[_pair].prices[pairs[_pair].latestRound - 1].price[_s];
   }
 
@@ -60,7 +62,7 @@ contract SimplePriceFeed is ISimplePriceFeed {
     view
     returns (uint256)
   {
-    require(tokenToPair[_token] != 0, "simplePriceFeed: token_not_mapped");
+    require(tokenToPair[_token] != 0, "simplePriceFeed:token_not_mapped");
     return
       pairs[tokenToPair[_token]]
         .prices[pairs[tokenToPair[_token]].latestRound - 1]
@@ -68,10 +70,19 @@ contract SimplePriceFeed is ISimplePriceFeed {
   }
 
   function addPair(uint256 _pair) external {
+    require(
+      !pairs[_pair].isPairAvaliable,
+      "simplePriceFeed:pair_alrd_avaliable"
+    );
     pairs[_pair].isPairAvaliable = true;
   }
 
   function removePair(uint256 _pair) external {
     pairs[_pair].isPairAvaliable = false;
+  }
+
+  function mapTokenToPair(address _token, uint256 _pair) external {
+    require(pairs[_pair].isPairAvaliable, "simplePriceFeed:pair_unavaliable");
+    tokenToPair[_token] = _pair;
   }
 }

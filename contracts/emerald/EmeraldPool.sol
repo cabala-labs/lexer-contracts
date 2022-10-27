@@ -12,7 +12,7 @@ contract EmeraldPool is BasePool {
 
   // ---------- constructor ----------
   constructor(address _priceFeedAddress, address _atmAddress)
-    BasePool("EmrPool", _priceFeedAddress, _atmAddress)
+    BasePool("EmrPool", _atmAddress, _priceFeedAddress)
   {}
 
   // ---------- storage setters ----------

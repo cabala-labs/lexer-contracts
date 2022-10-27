@@ -75,6 +75,11 @@ interface IBaseTrade {
 
   function updateBorrowFee(uint256 indexPair) external;
 
+  function getPositionMetadata(uint256 tokenId)
+    external
+    view
+    returns (Position memory);
+
   // ---------- view functions ----------
   function calPositionPnL(uint256 tokenId, bool withFee)
     external

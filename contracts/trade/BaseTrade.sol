@@ -11,6 +11,8 @@ import "../pool/ISwappablePool.sol";
 import "../reward/IBaseReward.sol";
 import "../ERC721T/ERC721T.sol";
 
+import "hardhat/console.sol";
+
 abstract contract BaseTrade is IBaseTrade, ERC721T {
   using TokenLibs for uint256;
   // ---------- contract storage ----------
@@ -86,7 +88,7 @@ abstract contract BaseTrade is IBaseTrade, ERC721T {
     uint256 _depositAmount
   ) external {
     // receive collateral from user
-    atm.transferFrom(_depositToken, _account, address(this), _depositAmount);
+    atm.transferFrom(_depositToken, msg.sender, address(this), _depositAmount);
 
     // check if swap is required
     address collateralToken = _getCollateralToken(_indexPair, _tradeType);
@@ -128,9 +130,10 @@ abstract contract BaseTrade is IBaseTrade, ERC721T {
     }
 
     // take a snapshot of the USD value of the collateral
+    console.log(collateralToken);
     uint256 collateralTokenPrice = priceFeed.getTokenLatestPrice(
       collateralToken,
-      ISimplePriceFeed.Spread.HIGH
+      ISimplePriceFeed.Spread.LOW
     );
     newPosition.totalCollateralBalance = newPosition
       .totalCollateralAmount
@@ -215,6 +218,14 @@ abstract contract BaseTrade is IBaseTrade, ERC721T {
     returns (bool)
   {
     return _isPositionLiquidatable(_tokenId);
+  }
+
+  function getPositionMetadata(uint256 _tokenId)
+    external
+    view
+    returns (Position memory)
+  {
+    return positions[_tokenId];
   }
 
   // ---------- internal functions ----------

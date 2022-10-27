@@ -54,12 +54,6 @@ interface IBasePool {
 
   function rmvToken(address _token) external;
 
-  function withdrawFund(
-    address _token,
-    address _to,
-    uint256 _amount
-  ) external;
-
   // ---------- view functions ----------
   function getTokenTargetAmount(address _token) external view returns (uint256);
 
