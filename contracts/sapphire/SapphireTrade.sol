@@ -5,7 +5,7 @@ import "../trade/BaseTrade.sol";
 
 contract SapphireTrade is BaseTrade {
   // ---------- contract storage ----------
-  mapping(uint256 => address) public pairCollateral;
+  mapping(uint256 => address) public indexPairToToken;
   address shortToken;
 
   // ---------- constructor ----------
@@ -19,12 +19,9 @@ contract SapphireTrade is BaseTrade {
     shortToken = _shortToken;
   }
 
-  function setPairCollateral(uint256 _pair, address _token) external {
-    require(
-      pairCollateral[_pair] == address(0),
-      "SapTrade:pair_collateral_exists"
-    );
-    pairCollateral[_pair] = _token;
+  function mapIndexPairToToken(uint256 _pair, address _token) external {
+    require(indexPairToToken[_pair] == address(0), "SapTrade:pair_mapped");
+    indexPairToToken[_pair] = _token;
   }
 
   // ---------- action functions ----------
@@ -41,7 +38,7 @@ contract SapphireTrade is BaseTrade {
     if (_tradeType == TradeType.SHORT) {
       return shortToken;
     }
-    return pairCollateral[_indexPair];
+    return indexPairToToken[_indexPair];
   }
 
   function _calOpenPositionFee(uint256 _indexPair, uint256 _size)
@@ -56,5 +53,14 @@ contract SapphireTrade is BaseTrade {
   function _debitClosePositionFee(uint256 _tokenId) internal override {
     uint256 fee = 0;
     emit DebitClosingFee(_tokenId, fee);
+  }
+
+  function _getTradingToken(uint256 _indexPair)
+    internal
+    view
+    override
+    returns (address)
+  {
+    return indexPairToToken[_indexPair];
   }
 }

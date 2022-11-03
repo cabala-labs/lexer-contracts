@@ -116,14 +116,17 @@ abstract contract BasePool is IBasePool, FundWithdrawable {
   }
 
   function addToken(address _token, uint256 _targetAmount) external {
-    require(!tokens[_token].tokenActive, "BasePool: token_exists");
+    require(!tokens[_token].tokenActive, string.concat(name, ":token_exists"));
     tokens[_token].tokenActive = true;
     tokens[_token].targetAmount = _targetAmount;
     includedTokens.push(_token);
   }
 
   function rmvToken(address _token) external {
-    require(tokens[_token].tokenActive, "BasePool: token_not_exists");
+    require(
+      tokens[_token].tokenActive,
+      string.concat(name, ":token_not_exists")
+    );
     tokens[_token].tokenActive = false;
     for (uint256 i = 0; i < includedTokens.length; i++) {
       if (includedTokens[i] == _token) {
@@ -132,6 +135,25 @@ abstract contract BasePool is IBasePool, FundWithdrawable {
         break;
       }
     }
+  }
+
+  function reserveLiquidity(address token, uint256 amount) external {
+    console.log(
+      token,
+      IERC20(token).balanceOf(address(this)),
+      tokens[token].reservedAmount,
+      amount
+    );
+    require(
+      tokens[token].tokenActive,
+      string.concat(name, ":token_not_exists")
+    );
+    require(
+      IERC20(token).balanceOf(address(this)) >=
+        tokens[token].reservedAmount + amount,
+      string.concat(name, ":reserve_exceeds_balance")
+    );
+    tokens[token].reservedAmount += amount;
   }
 
   // ---------- view functions ----------

@@ -44,4 +44,13 @@ contract EmeraldTrade is BaseTrade {
     uint256 fee = 0;
     emit DebitClosingFee(_tokenId, fee);
   }
+
+  function _getTradingToken(uint256 _indexPair)
+    internal
+    view
+    override
+    returns (address)
+  {
+    return collateralToken;
+  }
 }

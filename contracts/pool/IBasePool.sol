@@ -13,74 +13,76 @@ interface IBasePool {
 
   // ---------- events ----------
   event TokenStaked(
-    address indexed _token,
-    address indexed _account,
-    uint256 _amountIn,
-    uint256 _amountOut
+    address indexed token,
+    address indexed account,
+    uint256 amountIn,
+    uint256 amountOut
   );
   event TokenUnstaked(
-    address indexed _token,
-    address indexed _account,
-    uint256 _amountOut,
-    uint256 _amountIn
+    address indexed token,
+    address indexed account,
+    uint256 amountOut,
+    uint256 amountIn
   );
   event CollectStakeFee(
-    address indexed _account,
-    address indexed _token,
-    uint256 _amount
+    address indexed account,
+    address indexed token,
+    uint256 amount
   );
   event CollectUnstakeFee(
-    address indexed _account,
-    address indexed _token,
-    uint256 _amount
+    address indexed account,
+    address indexed token,
+    uint256 amount
   );
 
   // ---------- action functions ----------
   function stake(
-    address _buyer,
-    address _tokenIn,
-    uint256 _amountIn,
-    uint256 _minAmountOut
-  ) external returns (uint256 _amountOut);
+    address buyer,
+    address tokenIn,
+    uint256 amountIn,
+    uint256 minAmountOut
+  ) external returns (uint256 amountOut);
 
   function unstake(
-    address _seller,
-    uint256 _amountIn,
-    address _tokenOut,
-    uint256 _minAmountOut
-  ) external returns (uint256 _tokenAmountOut);
+    address seller,
+    uint256 amountIn,
+    address tokenOut,
+    uint256 minAmountOut
+  ) external returns (uint256 tokenAmountOut);
 
-  function addToken(address _token, uint256 _targetAmount) external;
+  function addToken(address token, uint256 targetAmount) external;
 
-  function rmvToken(address _token) external;
+  function rmvToken(address token) external;
+
+  function reserveLiquidity(address token, uint256 amount) external;
 
   // ---------- view functions ----------
-  function getTokenTargetAmount(address _token) external view returns (uint256);
+  function getTokenTargetAmount(address token) external view returns (uint256);
 
-  function getTokenReservedAmount(address _token)
+  function getTokenReservedAmount(address token)
     external
     view
-    returns (uint256 _fee);
+    returns (uint256 fee);
 
-  function isTokenActive(address _token) external view returns (bool _isActive);
+  function isTokenActive(address token) external view returns (bool isActive);
 
-  function calStakeFee(address _token, uint256 _amountIn)
+  function calStakeFee(address token, uint256 amountIn)
     external
     view
-    returns (uint256 _fee);
+    returns (uint256 fee);
 
-  function calUnstakeFee(address _token, uint256 _amountIn)
+  function calUnstakeFee(address token, uint256 amountIn)
     external
     view
-    returns (uint256 _fee);
+    returns (uint256 fee);
 
   function getPoolAssetBalance(ISimplePriceFeed.Spread s)
     external
     view
-    returns (uint256 _balance);
+    returns (uint256 balance);
 
   function getPoolTokenPrice(ISimplePriceFeed.Spread s)
     external
     view
-    returns (uint256 _price);
+    returns (uint256 price);
 }
