@@ -19,7 +19,7 @@ contract ATM is IATM {
     address _to,
     uint256 _amount
   ) external {
-    require(fundManagers[msg.sender], "ATM: not fund manager");
+    require(fundManagers[msg.sender], "ATM:not_fund_manager");
     // check if _from is lexer contract which manages the fund
     if (fundManagers[_from]) {
       return FundWithdrawable(_from).withdrawFund(_token, _to, _amount);

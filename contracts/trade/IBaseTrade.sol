@@ -47,6 +47,8 @@ interface IBaseTrade {
     uint256 tokenId,
     uint256 exitPrice
   );
+  event PositionLiquidated(uint256 tokenId);
+
   event DebitOpenPositionFee(uint256 indexed tokenId, uint256 feeAmount); // include open and depth impact
   event DebitCollateralSwapFee(uint256 indexed tokenId, uint256 feeAmount);
   event DebitIncreaseSizeFee(uint256 indexed tokenId, uint256 feeAmount); // to prevent opening at small size and increase size during open

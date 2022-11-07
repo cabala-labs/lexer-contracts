@@ -6,8 +6,9 @@ import "../atm/IATM.sol";
 import "./IBaseReward.sol";
 import "../token/IPoolToken.sol";
 import "../pool/ISwappablePool.sol";
+import "../properties/FundWithdrawable.sol";
 
-abstract contract BaseReward is IBaseReward {
+abstract contract BaseReward is IBaseReward, FundWithdrawable {
   // ---------- contract storage ----------
   string public name;
 

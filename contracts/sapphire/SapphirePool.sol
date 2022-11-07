@@ -7,8 +7,11 @@ This contract is used to manage the asset in Sapphire pool, which holds the asse
 
 import "../pool/BasePool.sol";
 import "../pool/ISwappablePool.sol";
+import "../oracle/ISimplePriceFeed.sol";
 
 contract SapphirePool is BasePool, ISwappablePool {
+  using TokenLibs for uint256;
+
   // ---------- contract storage ----------
 
   // ---------- constructor ----------
@@ -23,13 +26,21 @@ contract SapphirePool is BasePool, ISwappablePool {
     address _tokenIn,
     address _tokenOut,
     uint256 _amountIn
-  ) external returns (uint256 _amountOut) {}
+  ) external returns (uint256 _amountOut) {
+    // calculate fee
+    uint256 fee = 0;
+    // collect fee
+    reward.collectFee(address(this), _tokenIn, fee, msg.sender);
+    return _swapToken(_tokenIn, _tokenOut, _amountIn - fee);
+  }
 
   function swapTokenWithoutFee(
     address _tokenIn,
     address _tokenOut,
     uint256 _amountIn
-  ) external returns (uint256 _amountOut, uint256 _fee) {}
+  ) external returns (uint256 _amountOut, uint256 _fee) {
+    return (_swapToken(_tokenIn, _tokenOut, _amountIn), 0);
+  }
 
   // ---------- view functions ----------
   function calSwapFee(
@@ -41,6 +52,37 @@ contract SapphirePool is BasePool, ISwappablePool {
   }
 
   // ---------- internal helpers ----------
+  function _swapToken(
+    address _tokenIn,
+    address _tokenOut,
+    uint256 _amountIn
+  ) internal returns (uint256 _amountOut) {
+    // get the price of _tokenIn
+    uint256 tokenInPrice = priceFeed.getTokenLatestPrice(
+      _tokenIn,
+      ISimplePriceFeed.Spread.LOW
+    );
+
+    // get the price of _tokenOut
+    uint256 tokenOutPrice = priceFeed.getTokenLatestPrice(
+      _tokenOut,
+      ISimplePriceFeed.Spread.HIGH
+    );
+
+    // get the amount of _tokenIn
+    atm.transferFrom(_tokenIn, msg.sender, _tokenOut, _amountIn);
+
+    // calculate the amount of _tokenOut
+    _amountOut = _amountIn
+      .normalizeDecimal(_tokenIn)
+      .getSize(tokenInPrice)
+      .getAmount(tokenOutPrice)
+      .toTokenDecimal(_tokenOut);
+
+    // transfer the amount of _tokenOut
+    IERC20(_tokenOut).transfer(msg.sender, _amountOut);
+  }
+
   function _calStakeFee(address _tokenIn, uint256 _amountIn)
     internal
     view
@@ -63,5 +105,7 @@ contract SapphirePool is BasePool, ISwappablePool {
     address _tokenIn,
     address _tokenOut,
     uint256 _amountIn
-  ) internal view returns (uint256 _fee) {}
+  ) internal view returns (uint256 _fee) {
+    return 0;
+  }
 }
