@@ -302,38 +302,46 @@ abstract contract BaseTrade is IBaseTrade, ERC721T, FundWithdrawable {
     emit PositionClosed(account, _tokenId, pairPrice);
     // calculate the withdraw amount
     (bool isProfit, uint256 positionPnL) = _calPositionPnL(_tokenId, true);
-    uint256 pnlAmount = positionPnL
-      .getAmount(collateralTokenPrice)
-      .toTokenDecimal(collateralToken);
+    uint256 withdrawalAmount = (
+      isProfit
+        ? position.totalCollateralBalance + positionPnL
+        : position.totalCollateralBalance - positionPnL
+    ).getAmount(collateralTokenPrice).toTokenDecimal(collateralToken);
     uint256 feeAmount = position
       .incurredFee
       .getAmount(collateralTokenPrice)
       .toTokenDecimal(collateralToken);
-    console.log("b", isProfit, positionPnL, pnlAmount);
+    withdrawalAmount = withdrawalAmount - feeAmount;
+    console.log("b", isProfit, positionPnL, withdrawalAmount);
     if (isProfit) {
+      uint256 poolWithdrawalAmount = withdrawalAmount -
+        position
+          .totalCollateralBalance
+          .getAmount(position.entryPrice)
+          .toTokenDecimal(collateralToken);
+
       // withdraw the profit into this contract
       atm.transferFrom(
         collateralToken,
         address(pool),
         address(this),
-        pnlAmount
+        poolWithdrawalAmount
       );
-      return (
-        collateralToken,
-        position.totalCollateralAmount + pnlAmount - feeAmount
-      );
+      return (collateralToken, withdrawalAmount);
     } else {
+      uint256 poolDepositAmount = position
+        .totalCollateralBalance
+        .getAmount(position.entryPrice)
+        .toTokenDecimal(collateralToken) - withdrawalAmount;
+
       // send the loss to the pool
       atm.transferFrom(
         collateralToken,
         address(this),
         address(pool),
-        pnlAmount
+        poolDepositAmount
       );
-      return (
-        collateralToken,
-        position.totalCollateralAmount - pnlAmount - feeAmount
-      );
+      return (collateralToken, withdrawalAmount);
     }
   }
 
