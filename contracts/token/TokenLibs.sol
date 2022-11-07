@@ -71,7 +71,7 @@ library TokenLibs {
     pure
     returns (uint256)
   {
-    // 1% = 1e18, 100% = 1e20
-    return (nominator * 1e20) / denominator;
+    // 100% = 1e18
+    return (nominator * denominator) / 1e18;
   }
 }

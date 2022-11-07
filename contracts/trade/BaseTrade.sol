@@ -174,7 +174,7 @@ abstract contract BaseTrade is IBaseTrade, ERC721T, FundWithdrawable {
     // emit open position event
     emit PositionCreated(
       _account,
-      totalMinted(),
+      totalMinted() - 1,
       _indexPair,
       _tradeType,
       newPosition.entryPrice,
@@ -449,13 +449,17 @@ abstract contract BaseTrade is IBaseTrade, ERC721T, FundWithdrawable {
   {
     // find the pnl of the position
     (bool isProfit, uint256 positionPnL) = _calPositionPnL(_tokenId, false);
-    // find the collateralBalance of the position
-    uint256 collateralBalance = positions[_tokenId].totalCollateralAmount;
+
+    console.log(
+      "isPositionLiquidatable",
+      positionPnL,
+      positions[_tokenId].totalCollateralBalance.getRatio(liquidationThreshold)
+    );
     // if the position is in loss and lost more than the threshold
-    if (!isProfit && positionPnL > liquidationThreshold * collateralBalance) {
-      return true;
-    }
-    return false;
+    return
+      !isProfit &&
+      positionPnL >=
+      positions[_tokenId].totalCollateralBalance.getRatio(liquidationThreshold);
   }
 
   function _getTradingToken(uint256 _indexPair)
