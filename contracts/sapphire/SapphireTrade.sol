@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "../trade/BaseTrade.sol";
 
 contract SapphireTrade is BaseTrade {
+  using TokenLibs for uint256;
   // ---------- contract storage ----------
   mapping(uint256 => address) public indexPairToToken;
   address shortToken;
@@ -39,6 +40,30 @@ contract SapphireTrade is BaseTrade {
       return shortToken;
     }
     return indexPairToToken[_indexPair];
+  }
+
+  function _getCollateralAmount(uint256 _tokenId)
+    internal
+    view
+    override
+    returns (uint256)
+  {
+    // get the position tradeType
+    TradeType tradeType = positions[_tokenId].tradeType;
+
+    uint256 collateralAmount = positions[_tokenId].totalCollateralBalance;
+
+    // find the entry amount if it is long
+    if (tradeType == TradeType.LONG) {
+      collateralAmount = collateralAmount.getAmount(
+        positions[_tokenId].entryPrice
+      );
+    }
+
+    return
+      collateralAmount.toTokenDecimal(
+        _getCollateralToken(positions[_tokenId].indexPair, tradeType)
+      );
   }
 
   function _calOpenPositionFee(uint256 _indexPair, uint256 _size)

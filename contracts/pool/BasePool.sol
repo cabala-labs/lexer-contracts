@@ -138,12 +138,6 @@ abstract contract BasePool is IBasePool, FundWithdrawable {
   }
 
   function reserveLiquidity(address token, uint256 amount) external {
-    console.log(
-      token,
-      IERC20(token).balanceOf(address(this)),
-      tokens[token].reservedAmount,
-      amount
-    );
     require(
       tokens[token].tokenActive,
       string.concat(name, ":token_not_exists")

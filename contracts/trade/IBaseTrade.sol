@@ -19,7 +19,7 @@ interface IBaseTrade {
     uint256 entryPrice;
     uint256 size;
     uint256 totalCollateralBalance;
-    uint256 totalCollateralAmount;
+    uint256 totalCollateralAmount; //todo remove this
     uint256 exitPrice;
     uint256 incurredFee;
     uint256 lastBorrowRate;

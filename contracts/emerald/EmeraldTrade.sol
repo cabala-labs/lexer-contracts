@@ -4,6 +4,8 @@ pragma solidity ^0.8.13;
 import "../trade/BaseTrade.sol";
 
 contract EmeraldTrade is BaseTrade {
+  using TokenLibs for uint256;
+
   // ---------- contract storage ----------
   address public collateralToken;
 
@@ -29,6 +31,18 @@ contract EmeraldTrade is BaseTrade {
     returns (address)
   {
     return collateralToken;
+  }
+
+  function _getCollateralAmount(uint256 _tokenId)
+    internal
+    view
+    override
+    returns (uint256)
+  {
+    return
+      positions[_tokenId].totalCollateralBalance.toTokenDecimal(
+        _getCollateralToken(positions[_tokenId].indexPair, TradeType.LONG)
+      );
   }
 
   function _calOpenPositionFee(uint256 _indexPair, uint256 _size)

@@ -312,34 +312,29 @@ abstract contract BaseTrade is IBaseTrade, ERC721T, FundWithdrawable {
       .getAmount(collateralTokenPrice)
       .toTokenDecimal(collateralToken);
     withdrawalAmount = withdrawalAmount - feeAmount;
-    console.log("b", isProfit, positionPnL, withdrawalAmount);
+    uint256 collateralAmount = _getCollateralAmount(_tokenId);
     if (isProfit) {
-      uint256 poolWithdrawalAmount = withdrawalAmount -
-        position
-          .totalCollateralBalance
-          .getAmount(position.entryPrice)
-          .toTokenDecimal(collateralToken);
-
+      console.log("xx", withdrawalAmount, collateralAmount);
       // withdraw the profit into this contract
       atm.transferFrom(
         collateralToken,
         address(pool),
         address(this),
-        poolWithdrawalAmount
+        withdrawalAmount - collateralAmount
       );
       return (collateralToken, withdrawalAmount);
     } else {
-      uint256 poolDepositAmount = position
-        .totalCollateralBalance
-        .getAmount(position.entryPrice)
-        .toTokenDecimal(collateralToken) - withdrawalAmount;
-
+      console.log(
+        collateralAmount,
+        withdrawalAmount,
+        collateralAmount - withdrawalAmount
+      );
       // send the loss to the pool
       atm.transferFrom(
         collateralToken,
         address(this),
         address(pool),
-        poolDepositAmount
+        collateralAmount - withdrawalAmount
       );
       return (collateralToken, withdrawalAmount);
     }
@@ -357,10 +352,6 @@ abstract contract BaseTrade is IBaseTrade, ERC721T, FundWithdrawable {
     returns (bool isProfit, uint256 positionPnL)
   {
     Position memory position = positions[_tokenId];
-    address collateralToken = _getCollateralToken(
-      position.indexPair,
-      position.tradeType
-    );
 
     // get the price of the index pair
     uint256 pairPrice = priceFeed.getPairLatestPrice(
@@ -370,7 +361,7 @@ abstract contract BaseTrade is IBaseTrade, ERC721T, FundWithdrawable {
         : ISimplePriceFeed.Spread.HIGH
     );
 
-    // calculate the position PnL
+    // check if the position is in profit
     if (
       (position.tradeType == TradeType.LONG &&
         pairPrice >= position.entryPrice) ||
@@ -380,12 +371,15 @@ abstract contract BaseTrade is IBaseTrade, ERC721T, FundWithdrawable {
       isProfit = true;
     }
 
+    // find the trading token of the pair
+    address tradingToken = _getTradingToken(position.indexPair);
+
     // if long & profit or short & loss => current price > entry price
     if (
       (position.tradeType == TradeType.LONG && isProfit) ||
       (position.tradeType == TradeType.SHORT && !isProfit)
     ) {
-      positionPnL = position.size.normalizeDecimal(collateralToken).getSize(
+      positionPnL = position.size.normalizeDecimal(tradingToken).getSize(
         pairPrice - position.entryPrice
       );
     }
@@ -395,7 +389,7 @@ abstract contract BaseTrade is IBaseTrade, ERC721T, FundWithdrawable {
       (position.tradeType == TradeType.LONG && !isProfit) ||
       (position.tradeType == TradeType.SHORT && isProfit)
     ) {
-      positionPnL = position.size.normalizeDecimal(collateralToken).getSize(
+      positionPnL = position.size.normalizeDecimal(tradingToken).getSize(
         position.entryPrice - pairPrice
       );
     }
@@ -424,6 +418,12 @@ abstract contract BaseTrade is IBaseTrade, ERC721T, FundWithdrawable {
     view
     virtual
     returns (address);
+
+  function _getCollateralAmount(uint256 _tokenId)
+    internal
+    view
+    virtual
+    returns (uint256);
 
   function _debitClosePositionFee(uint256 _tokenId) internal virtual;
 
