@@ -34,9 +34,13 @@ const config: HardhatUserConfig = {
     ganache: {
       url: "http://127.0.0.1:7545",
     },
+    arb_goerli: {
+      url: process.env.ARB_GOERLI_URL as string,
+      accounts: [process.env.PRIVATE_KEY as string],
+    },
   },
   gasReporter: {
-    enabled: true,
+    enabled: false,
     currency: "USD",
   },
   etherscan: {
