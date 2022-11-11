@@ -6,7 +6,7 @@ const pairs = {
   2: "ETH/USD",
   3: "BTC/USD",
   4: "EUR/USD",
-  5: "GBP/JPY",
+  5: "JPY/USD",
 };
 
 const findPairIndex = (pair: string) => {
@@ -44,9 +44,9 @@ async function main() {
     contractAddresses.simplePriceFeedAddress
   );
   // add all pairs to price feed
-  for (const pairId of Object.keys(pairs)) {
-    await simplePriceFeed.addPair(pairId);
-  }
+  // for (const pairId of Object.keys(pairs)) {
+  //   await simplePriceFeed.addPair(pairId);
+  // }
 
   // map token addresses to pair ids
   await simplePriceFeed.mapTokenToPair(
@@ -77,6 +77,16 @@ async function main() {
   );
   await simplePriceFeed.setPairLatestPrice(
     findPairIndex("ETH/USD"),
+    oneUSD,
+    oneUSD
+  );
+  await simplePriceFeed.setPairLatestPrice(
+    findPairIndex("EUR/USD"),
+    oneUSD,
+    oneUSD
+  );
+  await simplePriceFeed.setPairLatestPrice(
+    findPairIndex("JPY/USD"),
     oneUSD,
     oneUSD
   );
@@ -123,8 +133,8 @@ async function main() {
   await sapphireTrade.addPair(2);
   await sapphireTrade.addPair(3);
   await sapphireTrade.setShortToken(tokenAddresses.USDC);
-  await sapphireTrade.setPairCollateral(2, tokenAddresses.WETH);
-  await sapphireTrade.setPairCollateral(3, tokenAddresses.WBTC);
+  await sapphireTrade.mapIndexPairToToken(2, tokenAddresses.WETH);
+  await sapphireTrade.mapIndexPairToToken(3, tokenAddresses.WBTC);
 
   // set up the emerald contracts
   console.log("setting up emeraldPool");
