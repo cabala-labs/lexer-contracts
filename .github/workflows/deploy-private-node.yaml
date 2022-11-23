@@ -24,7 +24,7 @@ jobs:
       - name: Set up Doppler
         uses: dopplerhq/cli-action@v1
 
-      - name: Build the project
+      - name: Install dependencies
         run: npm install
 
       # - name: Test the project
@@ -39,11 +39,11 @@ jobs:
           username: ${{ secrets.AWS_HARDHAT_USERNAME }}
           key: ${{ secrets.AWS_HARDHAT_KEY }}
           source: "."
-          target: "/home/lexer-contracts"
+          target: "/home/ubuntu/lexer-contracts"
           rm: true
 
       - name: Deploy contracts to private testnet
         run: |
-          cd "/home/lexer-contracts"
+          cd "/home/ubuntu/lexer-contracts"
           npm run start-hardhat-node
           npm run deploy:local

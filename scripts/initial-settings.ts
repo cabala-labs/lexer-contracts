@@ -14,6 +14,7 @@ const findPairIndex = (pair: string) => {
   return index + 1;
 };
 
+
 async function main() {
   const tokens = await fsPromises.readFile(
     __dirname + "/token-address.json",

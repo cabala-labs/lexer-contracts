@@ -23,20 +23,13 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
-    // mainnet: {},
-    goerli: {
-      url: process.env.GOERLI_URL as string,
-      // url: "https://goerli.infura.io/v3/1175d7a914d241fdb6f4f2086fb07be1",
-      accounts: [process.env.PRIVATE_KEY as string],
-      gasPrice: 12000000000,
-    },
     hardhat: {},
     ganache: {
       url: "http://127.0.0.1:7545",
     },
     arb_goerli: {
-      url: process.env.ARB_GOERLI_URL as string,
-      accounts: [process.env.PRIVATE_KEY as string],
+      url: process.env.RPC_URL as string,
+      accounts: [process.env.DEPLOYER_KEY as string],
     },
   },
   gasReporter: {
@@ -44,7 +37,7 @@ const config: HardhatUserConfig = {
     currency: "USD",
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
+    apiKey: process.env.ETHERSCAN_KEY,
   },
 };
 

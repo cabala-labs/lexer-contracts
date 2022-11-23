@@ -190,8 +190,8 @@ export async function _initialDeploymentFixture() {
   await sapphireTrade.addPair(2);
   await sapphireTrade.addPair(3);
   await sapphireTrade.setShortToken(usdc.address);
-  await sapphireTrade.setPairCollateral(2, weth.address);
-  await sapphireTrade.setPairCollateral(3, wbtc.address);
+  await sapphireTrade.mapIndexPairToToken(2, weth.address);
+  await sapphireTrade.mapIndexPairToToken(3, wbtc.address);
 
   // set up the emerald contracts
   await emeraldPool.setPoolToken(emeraldToken.address);
@@ -209,6 +209,19 @@ export async function _initialDeploymentFixture() {
   await emeraldTrade.addPair(4);
   await emeraldTrade.addPair(5);
   await emeraldTrade.setCollateralToken(usdc.address);
+
+  // fund the pool with tokens
+  await usdc.mint(
+    sapphirePool.address,
+    ethers.utils.parseUnits("100000000000", 6)
+  );
+  await wbtc.mint(sapphirePool.address, ethers.utils.parseUnits("1000000", 8));
+  await weth.mint(sapphirePool.address, ethers.utils.parseUnits("1000000", 18));
+
+  await usdc.mint(
+    emeraldPool.address,
+    ethers.utils.parseUnits("100000000000", 6)
+  );
 
   return {
     owner,
