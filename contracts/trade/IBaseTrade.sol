@@ -90,5 +90,8 @@ interface IBaseTrade {
 
   function isPositionLiquidatable(uint256 tokenId) external view returns (bool);
 
-  function getCollateralToken(uint256 tokenId) external view returns (address);
+  function getCollateralToken(uint256 _indexPair, TradeType _tradeType)
+    external
+    view
+    returns (address);
 }

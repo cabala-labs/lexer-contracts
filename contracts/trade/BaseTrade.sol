@@ -89,7 +89,7 @@ abstract contract BaseTrade is IBaseTrade, ERC721T, FundWithdrawable {
     address _depositToken,
     uint256 _depositAmount
   ) external {
-    // receive collateral from user
+    // receive collateral
     atm.transferFrom(_depositToken, msg.sender, address(this), _depositAmount);
 
     // check if swap is required
@@ -168,7 +168,7 @@ abstract contract BaseTrade is IBaseTrade, ERC721T, FundWithdrawable {
       }
     }
 
-    //todo mint a new position NFT to the user
+    // mint a new position NFT to the user
     _mint(_account, newPosition);
 
     // emit open position event
@@ -233,6 +233,14 @@ abstract contract BaseTrade is IBaseTrade, ERC721T, FundWithdrawable {
   {
     Position memory position = positions[_tokenId];
     return _getCollateralToken(position.indexPair, position.tradeType);
+  }
+
+  function getCollateralToken(uint256 _indexPair, TradeType _tradeType)
+    external
+    view
+    returns (address)
+  {
+    return _getCollateralToken(_indexPair, _tradeType);
   }
 
   function calPositionPnL(uint256 tokenId, bool withFee)

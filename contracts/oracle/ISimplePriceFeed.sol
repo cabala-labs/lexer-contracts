@@ -18,6 +18,8 @@ interface ISimplePriceFeed {
 
   struct Pair {
     bool isPairAvaliable;
+    bool shouldCheckChainlink;
+    address chainlinkAddress;
     uint256 latestRound;
     mapping(uint256 => Price) prices;
   }
@@ -31,10 +33,19 @@ interface ISimplePriceFeed {
 
   function decimals() external pure returns (uint256);
 
-  function setPairLatestPrice(
-    uint256 _pair,
-    uint256 _highPrice,
-    uint256 _lowPrice
+  function setPairsLatestPricesWithCallback(
+    uint256[] memory _pairs,
+    uint256[] memory _prices,
+    address _callbackAddress,
+    bytes memory _callbackSignature,
+    uint256 _callbackValue
+  ) external;
+
+  function setPairLatestPrice(uint256 _pair, uint256 _price) external;
+
+  function setPairsLatestPrices(
+    uint256[] memory _pairs,
+    uint256[] memory _prices
   ) external;
 
   function getPairLatestPriceData(uint256 _pair, uint256 _roundId)

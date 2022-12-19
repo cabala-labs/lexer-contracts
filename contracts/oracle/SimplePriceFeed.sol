@@ -2,9 +2,10 @@
 pragma solidity ^0.8.13;
 
 /* SimplePriceFeed.sol
-This contract is used to feed, get and guard the price of a ERC20 pair
+This contract is used to feed, get and guard the price of pairs
 */
 
+import "@openzeppelin/contracts/utils/Address.sol";
 import "./ISimplePriceFeed.sol";
 import "hardhat/console.sol";
 
@@ -16,19 +17,33 @@ contract SimplePriceFeed is ISimplePriceFeed {
     return 18;
   }
 
-  function setPairLatestPrice(
-    uint256 _pair,
-    uint256 _highPrice,
-    uint256 _lowPrice
+  function setPairsLatestPricesWithCallback(
+    uint256[] memory _pairs,
+    uint256[] memory _prices,
+    address _callbackAddress,
+    bytes memory _callbackSignature,
+    uint256 _callbackValue
   ) external {
-    require(pairs[_pair].isPairAvaliable, "simplePriceFeed:pair_unavaliable");
-    pairs[_pair].prices[pairs[_pair].latestRound].price[
-      Spread.HIGH
-    ] = _highPrice;
-    pairs[_pair].prices[pairs[_pair].latestRound].price[Spread.LOW] = _lowPrice;
-    pairs[_pair].prices[pairs[_pair].latestRound].timestamp = block.timestamp;
-    emit PriceSubmitted(_pair, pairs[_pair].latestRound, _highPrice, _lowPrice);
-    pairs[_pair].latestRound += 1;
+    for (uint256 i = 0; i < _pairs.length; i++) {
+      _setPairPrice(_pairs[i], _prices[i]);
+    }
+    Address.functionCallWithValue(
+      _callbackAddress,
+      _callbackSignature,
+      _callbackValue
+    );
+  }
+
+  function setPairsLatestPrices(uint256[] memory _pair, uint256[] memory _price)
+    external
+  {
+    for (uint256 i = 0; i < _pair.length; i++) {
+      _setPairPrice(_pair[i], _price[i]);
+    }
+  }
+
+  function setPairLatestPrice(uint256 _pair, uint256 _price) external {
+    _setPairPrice(_pair, _price);
   }
 
   function getPairLatestPriceData(uint256 _pair, uint256 _roundId)
@@ -57,7 +72,7 @@ contract SimplePriceFeed is ISimplePriceFeed {
     return pairs[_pair].prices[pairs[_pair].latestRound - 1].price[_s];
   }
 
-  function getTokenLatestPrice(address _token, Spread _S)
+  function getTokenLatestPrice(address _token, Spread _s)
     external
     view
     returns (uint256)
@@ -66,7 +81,7 @@ contract SimplePriceFeed is ISimplePriceFeed {
     return
       pairs[tokenToPair[_token]]
         .prices[pairs[tokenToPair[_token]].latestRound - 1]
-        .price[_S];
+        .price[_s];
   }
 
   function addPair(uint256 _pair) external {
@@ -84,5 +99,27 @@ contract SimplePriceFeed is ISimplePriceFeed {
   function mapTokenToPair(address _token, uint256 _pair) external {
     require(pairs[_pair].isPairAvaliable, "simplePriceFeed:pair_unavaliable");
     tokenToPair[_token] = _pair;
+  }
+
+  function _setPairPrice(uint256 _pair, uint256 _price) internal {
+    require(pairs[_pair].isPairAvaliable, "simplePriceFeed:pair_unavaliable");
+    uint256 newRound = pairs[_pair].latestRound + 1;
+    // check if the pair needs to be checked against Chainlink
+    if (pairs[_pair].shouldCheckChainlink) {
+      //todo chainlink check
+      return;
+    } else {
+      pairs[_pair].prices[newRound].price[Spread.HIGH] = _price;
+      pairs[_pair].prices[newRound].price[Spread.LOW] = _price;
+    }
+
+    pairs[_pair].latestRound += 1;
+    pairs[_pair].prices[pairs[_pair].latestRound].timestamp = block.timestamp;
+    emit PriceSubmitted(
+      _pair,
+      pairs[_pair].latestRound,
+      pairs[_pair].prices[newRound].price[Spread.HIGH],
+      pairs[_pair].prices[newRound].price[Spread.LOW]
+    );
   }
 }
