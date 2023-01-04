@@ -28,7 +28,7 @@ abstract contract BaseTrade is IBaseTrade, ERC721T, FundWithdrawable {
   mapping(address => BorrowRate) public borrowRates;
   uint256 public borrowInterval = 3600;
   mapping(uint256 => bool) public availablePairs;
-  mapping(uint256 => Position) public positions;
+  mapping(uint256 => Position) internal positions;
   uint256 liquidationThreshold = 985 * 1e15; // 98.5% * 1e18
 
   // ---------- constructor ----------
@@ -140,11 +140,6 @@ abstract contract BaseTrade is IBaseTrade, ERC721T, FundWithdrawable {
       .totalCollateralAmount
       .normalizeDecimal(collateralToken)
       .getSize(collateralTokenPrice);
-    console.log(
-      "cb",
-      newPosition.totalCollateralAmount,
-      newPosition.totalCollateralBalance
-    );
 
     // reserve the liquidity: size (in index token) to the amount of collateral token
     {

@@ -24,6 +24,7 @@ interface IBaseTradeOrder {
   // ---------- events ----------
   event TradeOrderCreated(
     address indexed account,
+    uint256 tokenId,
     OrderType orderType,
     uint256 orderEntryPrice,
     uint256 indexPair,

@@ -6,7 +6,6 @@ import "./IBaseTradeOrder.sol";
 import "../token/TokenLibs.sol";
 import "../atm/IATM.sol";
 import "../trade/IBaseTrade.sol";
-import "../pool/ISwappablePool.sol";
 import "../ERC721T/ERC721T.sol";
 import "../properties/FundWithdrawable.sol";
 import "../oracle/ISimplePriceFeed.sol";
@@ -16,10 +15,9 @@ abstract contract BaseTradeOrder is IBaseTradeOrder, ERC721T, FundWithdrawable {
   // ---------- contract storage ----------
   string public contractName;
   IATM atm;
-  IBaseTrade trade;
-  ISwappablePool swap;
   ISimplePriceFeed priceFeed;
-  mapping(uint256 => TradeOrder) public tradeOrders;
+  IBaseTrade trade;
+  mapping(uint256 => TradeOrder) internal tradeOrders;
 
   // ---------- constructor ----------
   constructor(
@@ -80,6 +78,7 @@ abstract contract BaseTradeOrder is IBaseTradeOrder, ERC721T, FundWithdrawable {
 
     emit TradeOrderCreated(
       msg.sender,
+      totalMinted() - 1,
       _orderType,
       _orderEntryPrice,
       _indexPair,
@@ -95,6 +94,9 @@ abstract contract BaseTradeOrder is IBaseTradeOrder, ERC721T, FundWithdrawable {
     // execute the order in trade contract
     // get the order
     TradeOrder memory traderOrder = tradeOrders[_tokenId];
+
+    // check if the price now can execute the order
+    require(_canExecuteOrder(_tokenId), "order entry price not met");
 
     // transfer the rest of the deposit from the order owner
     try
@@ -193,11 +195,44 @@ abstract contract BaseTradeOrder is IBaseTradeOrder, ERC721T, FundWithdrawable {
     _closeOrder(_tokenId, false);
   }
 
+  // ---------- view functions ----------
+  function getOrderMetadata(uint256 _tokenId)
+    external
+    view
+    returns (TradeOrder memory)
+  {
+    return tradeOrders[_tokenId];
+  }
+
   // ---------- internal functions ----------
   function _closeOrder(uint256 _tokenId, bool executed) internal {
     _burn(_tokenId);
     delete tradeOrders[_tokenId];
     emit TradeOrderClosed(_tokenId, executed);
+  }
+
+  function _canExecuteOrder(uint256 _tokenId) internal view returns (bool) {
+    TradeOrder memory traderOrder = tradeOrders[_tokenId];
+
+    // get the current price of the index pair
+    uint256 currentPairPrice = priceFeed.getPairLatestPrice(
+      traderOrder.indexPair,
+      traderOrder.tradeType == IBaseTrade.TradeType.LONG
+        ? ISimplePriceFeed.Spread.HIGH
+        : ISimplePriceFeed.Spread.LOW
+    );
+
+    // return true for market order
+    if (traderOrder.orderType == OrderType.MARKET) {
+      return true;
+    }
+
+    // for long order
+    if (traderOrder.tradeType == IBaseTrade.TradeType.LONG) {
+      return currentPairPrice >= traderOrder.orderEntryPrice;
+    }
+    // for short order
+    return currentPairPrice <= traderOrder.orderEntryPrice;
   }
 
   // ---------- overriding functions ----------

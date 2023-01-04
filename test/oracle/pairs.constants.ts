@@ -1,7 +1,7 @@
 const pairs = {
   1: "USDC/USD",
-  2: "ETH/USD",
-  3: "BTC/USD",
+  2: "WETH/USD",
+  3: "WBTC/USD",
   4: "EUR/USD",
   5: "GBP/JPY",
 };

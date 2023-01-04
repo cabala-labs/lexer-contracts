@@ -38,16 +38,27 @@ async function deploySapphire(
     simplePriceFeedAddress
   );
 
+  console.log("deploying sapphire trade order");
+  const SapphireTradeOrder = await ethers.getContractFactory(
+    "SapphireTradeOrder"
+  );
+  const sapphireTradeOrder = await SapphireTradeOrder.deploy(
+    atmAddress,
+    simplePriceFeedAddress
+  );
+
   console.log(`sapphireToken: "${sapphireToken.address}",`);
   console.log(`sapphirePool: "${sapphirePool.address}",`);
   console.log(`sapphireTrade: "${sapphireTrade.address}",`);
   console.log(`sapphireReward: "${sapphireReward.address}",`);
+  console.log(`sapphireTradeOrder: "${sapphireTradeOrder.address}",`);
 
   console.log(`
   sapphireToken=${sapphireToken.address}
   sapphirePool=${sapphirePool.address}
   sapphireTrade=${sapphireTrade.address}
   sapphireReward=${sapphireReward.address}
+  sapphireTradeOrder=${sapphireTradeOrder.address}
   `);
 
   return {
@@ -55,6 +66,7 @@ async function deploySapphire(
     sapphirePoolAddress: sapphirePool.address,
     sapphireTradeAddress: sapphireTrade.address,
     sapphireRewardAddress: sapphireReward.address,
+    sapphireTradeOrderAddress: sapphireTradeOrder.address,
   };
 }
 

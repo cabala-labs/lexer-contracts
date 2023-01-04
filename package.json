@@ -1,13 +1,16 @@
 {
   "name": "hardhat-project",
   "scripts": {
-    "deploy:goerli": "doppler run -- npx hardhat run scripts/deployment/deploy.ts --network goerli",
     "deploy:arb-goerli": "doppler run -- npx hardhat run scripts/deployment/deploy.ts --network arb_goerli",
-    "deploy:local": "doppler run -- npx hardhat run scripts/deploy.ts --network hardhat",
+    "setup:arb-goerli": "doppler run -- npx hardhat run scripts/initial-settings.ts --network arb_goerli",
+    "deploy:ganache": "doppler run -- npx hardhat run scripts/deployment/deploy.ts --network ganache",
+    "deploy-token:ganache": "doppler run -- npx hardhat run scripts/deployment/deploy-mocktoken.ts --network ganache",
+    "setup:ganache": "doppler run -- npx hardhat run scripts/initial-settings.ts --network ganache",
+    "ganache-setup": "npm run deploy-token:ganache && npm run deploy:ganache && npm run setup:ganache",
     "compile": "doppler run -- npx hardhat compile",
     "test": "doppler run -- npx hardhat test",
     "test:full": "doppler run -- npx hardhat test --trace",
-    "clean": "doppler run -- npx hardhat clean && rm -rf cache && rm -rf bin",
+    "clean": "doppler run -- npx hardhat clean && rm -rf cache && rm -rf bin && rm -rf typechain-types",
     "start-node": "doppler run -- npx hardhat node"
   },
   "devDependencies": {

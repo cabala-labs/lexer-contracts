@@ -21,24 +21,20 @@ contract SimplePriceFeed is ISimplePriceFeed {
     uint256[] memory _pairs,
     uint256[] memory _prices,
     address _callbackAddress,
-    bytes memory _callbackSignature,
-    uint256 _callbackValue
+    bytes memory _callbackSignature
   ) external {
     for (uint256 i = 0; i < _pairs.length; i++) {
       _setPairPrice(_pairs[i], _prices[i]);
     }
-    Address.functionCallWithValue(
-      _callbackAddress,
-      _callbackSignature,
-      _callbackValue
-    );
+    Address.functionCall(_callbackAddress, _callbackSignature);
   }
 
-  function setPairsLatestPrices(uint256[] memory _pair, uint256[] memory _price)
-    external
-  {
-    for (uint256 i = 0; i < _pair.length; i++) {
-      _setPairPrice(_pair[i], _price[i]);
+  function setPairsLatestPrices(
+    uint256[] memory _pairs,
+    uint256[] memory _prices
+  ) external {
+    for (uint256 i = 0; i < _pairs.length; i++) {
+      _setPairPrice(_pairs[i], _prices[i]);
     }
   }
 
@@ -103,7 +99,7 @@ contract SimplePriceFeed is ISimplePriceFeed {
 
   function _setPairPrice(uint256 _pair, uint256 _price) internal {
     require(pairs[_pair].isPairAvaliable, "simplePriceFeed:pair_unavaliable");
-    uint256 newRound = pairs[_pair].latestRound + 1;
+    uint256 newRound = pairs[_pair].latestRound;
     // check if the pair needs to be checked against Chainlink
     if (pairs[_pair].shouldCheckChainlink) {
       //todo chainlink check
@@ -113,8 +109,8 @@ contract SimplePriceFeed is ISimplePriceFeed {
       pairs[_pair].prices[newRound].price[Spread.LOW] = _price;
     }
 
+    pairs[_pair].prices[newRound].timestamp = block.timestamp;
     pairs[_pair].latestRound += 1;
-    pairs[_pair].prices[pairs[_pair].latestRound].timestamp = block.timestamp;
     emit PriceSubmitted(
       _pair,
       pairs[_pair].latestRound,

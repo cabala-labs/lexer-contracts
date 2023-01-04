@@ -28,5 +28,38 @@ describe("SapphirePool.sol", function () {
         .connect(accounts[0])
         .stake(accounts[0].address, weth.address, ethAmount, 0);
     });
+    it("get the token price of the pool", async function () {
+      const { sapphirePool } = await loadFixture(_initialDeploymentFixture);
+      const poolTokenPrice = await sapphirePool.getPoolTokenPrice(0);
+
+      // test if the price is 1e18
+      expect(poolTokenPrice).to.equal(ethers.utils.parseEther("1"));
+    });
+
+    it("stake and test the token", async function () {
+      const { sapphirePool, atm, usdc, owner } = await loadFixture(
+        _initialDeploymentFixture
+      );
+      const poolTokenPrice = await sapphirePool.getPoolTokenPrice(0);
+
+      // test if the price is 1e18
+      expect(poolTokenPrice).to.equal(ethers.utils.parseEther("1"));
+
+      // stake 10 usdc
+      await usdc.mint(owner.address, ethers.utils.parseUnits("10", 6));
+
+      // allow atm to spend usdc
+      await usdc.approve(atm.address, ethers.utils.parseUnits("10", 6));
+      await sapphirePool.stake(
+        owner.address,
+        usdc.address,
+        ethers.utils.parseUnits("10", 6),
+        0
+      );
+
+      // get the token price
+      const poolTokenPrice2 = await sapphirePool.getPoolTokenPrice(0);
+      console.log(poolTokenPrice2.toString());
+    });
   });
 });

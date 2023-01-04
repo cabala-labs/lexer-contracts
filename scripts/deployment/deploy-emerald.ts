@@ -35,16 +35,27 @@ async function deployEmerald(
     simplePriceFeedAddress
   );
 
+  console.log("deploying emerald trade order");
+  const EmeraldTradeOrder = await ethers.getContractFactory(
+    "EmeraldTradeOrder"
+  );
+  const emeraldTradeOrder = await EmeraldTradeOrder.deploy(
+    atmAddress,
+    simplePriceFeedAddress
+  );
+
   console.log(`emeraldToken: "${emeraldToken.address}",`);
   console.log(`emeraldPool: "${emeraldPool.address}",`);
   console.log(`emeraldTrade: "${emeraldTrade.address}",`);
   console.log(`emeraldReward: "${emeraldReward.address}",`);
+  console.log(`emeraldTradeOrder: "${emeraldTradeOrder.address}",`);
 
   console.log(`
   emeraldToken=${emeraldToken.address}
   emeraldPool=${emeraldPool.address}
   emeraldTrade=${emeraldTrade.address}
   emeraldReward=${emeraldReward.address}
+  emeraldTradeOrder=${emeraldTradeOrder.address}
   `);
 
   return {
@@ -52,6 +63,7 @@ async function deployEmerald(
     emeraldPoolAddress: emeraldPool.address,
     emeraldTradeAddress: emeraldTrade.address,
     emeraldRewardAddress: emeraldReward.address,
+    emeraldTradeOrderAddress: emeraldTradeOrder.address,
   };
 }
 

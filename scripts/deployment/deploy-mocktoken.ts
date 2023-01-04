@@ -31,9 +31,9 @@ async function main() {
   console.log("BatchMint deployed to:", batchMint.address);
 
   console.log(`
-  WETH=${weth.address}
-  USDC=${usdc.address}
-  WBTC=${wbtc.address}
+  ADDRESS_WETH=${weth.address}
+  ADDRESS_USDC=${usdc.address}
+  ADDRESS_WBTC=${wbtc.address}
   `);
 
   const tokenAddress = {

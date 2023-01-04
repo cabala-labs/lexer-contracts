@@ -105,6 +105,13 @@ export async function _initialDeploymentFixture() {
     atm.address,
     simplePriceFeed.address
   );
+  const SapphireTradeOrder = await ethers.getContractFactory(
+    "SapphireTradeOrder"
+  );
+  const sapphireTradeOrder = await SapphireTradeOrder.deploy(
+    atm.address,
+    simplePriceFeed.address
+  );
 
   // deploy the emerald contracts
   const EmeraldToken = await ethers.getContractFactory("EmeraldToken");
@@ -125,7 +132,6 @@ export async function _initialDeploymentFixture() {
     atm.address,
     referral.address
   );
-
   const EmeraldTrade = await ethers.getContractFactory("EmeraldTrade", {
     libraries: {
       TokenLibs: tokenLibs.address,
@@ -135,14 +141,23 @@ export async function _initialDeploymentFixture() {
     atm.address,
     simplePriceFeed.address
   );
+  const EmeraldTradeOrder = await ethers.getContractFactory(
+    "EmeraldTradeOrder"
+  );
+  const emeraldTradeOrder = await EmeraldTradeOrder.deploy(
+    atm.address,
+    simplePriceFeed.address
+  );
 
   // set up the peripheral contracts
   await atm.addFundManager(sapphirePool.address);
   await atm.addFundManager(sapphireReward.address);
   await atm.addFundManager(sapphireTrade.address);
+  await atm.addFundManager(sapphireTradeOrder.address);
   await atm.addFundManager(emeraldPool.address);
   await atm.addFundManager(emeraldReward.address);
   await atm.addFundManager(emeraldTrade.address);
+  await atm.addFundManager(emeraldTradeOrder.address);
 
   // add all pairs to price feed
   for (const pairId of Object.keys(pairs)) {
@@ -151,26 +166,14 @@ export async function _initialDeploymentFixture() {
 
   // map token addresses to pair ids
   simplePriceFeed.mapTokenToPair(usdc.address, findPairIndex("USDC/USD"));
-  simplePriceFeed.mapTokenToPair(wbtc.address, findPairIndex("BTC/USD"));
-  simplePriceFeed.mapTokenToPair(weth.address, findPairIndex("ETH/USD"));
+  simplePriceFeed.mapTokenToPair(wbtc.address, findPairIndex("WBTC/USD"));
+  simplePriceFeed.mapTokenToPair(weth.address, findPairIndex("WETH/USD"));
 
   // feed initial prices
   const oneUSD = ethers.utils.parseEther("1");
-  await simplePriceFeed.setPairLatestPrice(
-    findPairIndex("USDC/USD"),
-    oneUSD,
-    oneUSD
-  );
-  await simplePriceFeed.setPairLatestPrice(
-    findPairIndex("BTC/USD"),
-    oneUSD,
-    oneUSD
-  );
-  await simplePriceFeed.setPairLatestPrice(
-    findPairIndex("ETH/USD"),
-    oneUSD,
-    oneUSD
-  );
+  await simplePriceFeed.setPairLatestPrice(findPairIndex("USDC/USD"), oneUSD);
+  await simplePriceFeed.setPairLatestPrice(findPairIndex("WBTC/USD"), oneUSD);
+  await simplePriceFeed.setPairLatestPrice(findPairIndex("WETH/USD"), oneUSD);
 
   // set up the sapphire contracts
   await sapphirePool.setPoolToken(sapphireToken.address);
@@ -193,6 +196,8 @@ export async function _initialDeploymentFixture() {
   await sapphireTrade.mapIndexPairToToken(2, weth.address);
   await sapphireTrade.mapIndexPairToToken(3, wbtc.address);
 
+  await sapphireTradeOrder.setTrade(sapphireTrade.address);
+
   // set up the emerald contracts
   await emeraldPool.setPoolToken(emeraldToken.address);
   await emeraldPool.setReward(emeraldReward.address);
@@ -209,6 +214,8 @@ export async function _initialDeploymentFixture() {
   await emeraldTrade.addPair(4);
   await emeraldTrade.addPair(5);
   await emeraldTrade.setCollateralToken(usdc.address);
+
+  await emeraldTradeOrder.setTrade(emeraldTrade.address);
 
   // fund the pool with tokens
   await usdc.mint(
@@ -235,10 +242,12 @@ export async function _initialDeploymentFixture() {
     sapphirePool,
     sapphireReward,
     sapphireTrade,
+    sapphireTradeOrder,
     emeraldToken,
     emeraldPool,
     emeraldReward,
     emeraldTrade,
+    emeraldTradeOrder,
     usdc,
     wbtc,
     weth,

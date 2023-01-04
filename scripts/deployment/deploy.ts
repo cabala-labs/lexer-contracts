@@ -16,6 +16,7 @@ async function main() {
     sapphirePoolAddress,
     sapphireTradeAddress,
     sapphireRewardAddress,
+    sapphireTradeOrderAddress,
   } = await deploySapphire(
     accessControlAddress,
     atmAddress,
@@ -29,6 +30,7 @@ async function main() {
     emeraldPoolAddress,
     emeraldTradeAddress,
     emeraldRewardAddress,
+    emeraldTradeOrderAddress,
   } = await deployEmerald(
     accessControlAddress,
     atmAddress,
@@ -47,10 +49,12 @@ async function main() {
     sapphirePoolAddress,
     sapphireTradeAddress,
     sapphireRewardAddress,
+    sapphireTradeOrderAddress,
     emeraldTokenAddress,
     emeraldPoolAddress,
     emeraldTradeAddress,
     emeraldRewardAddress,
+    emeraldTradeOrderAddress,
   };
 
   console.log(JSON.stringify(contractAddresses, null, 2));
@@ -58,6 +62,26 @@ async function main() {
     __dirname + "/../lexer-address.json",
     JSON.stringify(contractAddresses, null, 2)
   );
+
+  // output a env format
+  const env = `
+  ADDRESS_ACCESS_CONTROL=${accessControlAddress}
+  ADDRESS_ATM=${atmAddress}
+  ADDRESS_SIMPLE_PRICE_FEED=${simplePriceFeedAddress}
+  ADDRESS_REFERRAL=${referralAddress}
+  ADDRESS_TOKEN_LIBS=${tokenLibsAddress}
+  ADDRESS_SAPPHIRE_TOKEN=${sapphireTokenAddress}
+  ADDRESS_SAPPHIRE_POOL=${sapphirePoolAddress}
+  ADDRESS_SAPPHIRE_TRADE=${sapphireTradeAddress}
+  ADDRESS_SAPPHIRE_REWARD=${sapphireRewardAddress}
+  ADDRESS_SAPPHIRE_TRADE_ORDER=${sapphireTradeOrderAddress}
+  ADDRESS_EMERALD_TOKEN=${emeraldTokenAddress}
+  ADDRESS_EMERALD_POOL=${emeraldPoolAddress}
+  ADDRESS_EMERALD_TRADE=${emeraldTradeAddress}
+  ADDRESS_EMERALD_REWARD=${emeraldRewardAddress}
+  ADDRESS_EMERALD_TRADE_ORDER=${emeraldTradeOrderAddress}
+  `;
+  console.log(env);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

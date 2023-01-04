@@ -37,8 +37,7 @@ interface ISimplePriceFeed {
     uint256[] memory _pairs,
     uint256[] memory _prices,
     address _callbackAddress,
-    bytes memory _callbackSignature,
-    uint256 _callbackValue
+    bytes memory _callbackSignature
   ) external;
 
   function setPairLatestPrice(uint256 _pair, uint256 _price) external;

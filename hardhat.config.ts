@@ -3,6 +3,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-tracer";
 import { ethers } from "hardhat";
 import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from "hardhat/builtin-tasks/task-names";
+import ganacheTestAccounts from "./ganache-accounts.json";
 
 subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
   async (_, __, runSuper) => {
@@ -26,6 +27,7 @@ const config: HardhatUserConfig = {
     hardhat: {},
     ganache: {
       url: "http://127.0.0.1:7545",
+      accounts: ganacheTestAccounts,
     },
     arb_goerli: {
       url: process.env.RPC_URL as string,
