@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.13;
 
-interface IBaseTrade {
+import "../ERC721T/IERC721T.sol";
+
+interface IBaseTrade is IERC721T {
   // ---------- custom datatypes ----------
   enum TradeType {
     LONG,

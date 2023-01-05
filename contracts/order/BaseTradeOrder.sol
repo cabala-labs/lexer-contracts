@@ -17,7 +17,10 @@ abstract contract BaseTradeOrder is IBaseTradeOrder, ERC721T, FundWithdrawable {
   IATM atm;
   ISimplePriceFeed priceFeed;
   IBaseTrade trade;
-  mapping(uint256 => TradeOrder) internal tradeOrders;
+
+  mapping(uint256 => OrderType) public orderTypes;
+  mapping(uint256 => OpenOrder) public openOrders;
+  mapping(uint256 => CloseOrder) public closeOrders;
 
   // ---------- constructor ----------
   constructor(
@@ -45,9 +48,9 @@ abstract contract BaseTradeOrder is IBaseTradeOrder, ERC721T, FundWithdrawable {
   }
 
   // ---------- action functions ----------
-  function createOrder(
-    OrderType _orderType,
-    uint256 _orderEntryPrice,
+  function createOpenOrder(
+    Instruction _instruction,
+    uint256 _orderPrice,
     uint256 _indexPair,
     IBaseTrade.TradeType _tradeType,
     uint256 _size,
@@ -62,11 +65,11 @@ abstract contract BaseTradeOrder is IBaseTradeOrder, ERC721T, FundWithdrawable {
     atm.transferFrom(_depositToken, msg.sender, address(this), _depositAmount);
 
     // create trade order
-    TradeOrder memory newTradeOrder = TradeOrder({
-      orderType: _orderType,
-      orderEntryPrice: _orderEntryPrice,
-      indexPair: _indexPair,
+    OpenOrder memory newOpenOrder = OpenOrder({
+      instruction: _instruction,
       tradeType: _tradeType,
+      indexPair: _indexPair,
+      orderPrice: _orderPrice,
       size: _size,
       depositToken: _depositToken,
       depositAmount: _depositAmount,
@@ -74,13 +77,17 @@ abstract contract BaseTradeOrder is IBaseTradeOrder, ERC721T, FundWithdrawable {
     });
 
     // mint a new position NFT to the user
-    _mint(msg.sender, newTradeOrder);
+    uint256 tokenId = totalMinted();
+    orderTypes[tokenId] = OrderType.OPEN;
+    openOrders[tokenId] = newOpenOrder;
 
-    emit TradeOrderCreated(
+    _mint(msg.sender, tokenId);
+
+    emit OpenOrderCreated(
       msg.sender,
-      totalMinted() - 1,
-      _orderType,
-      _orderEntryPrice,
+      tokenId,
+      _instruction,
+      _orderPrice,
       _indexPair,
       _tradeType,
       _size,
@@ -90,59 +97,56 @@ abstract contract BaseTradeOrder is IBaseTradeOrder, ERC721T, FundWithdrawable {
     );
   }
 
+  function createCloseOrder(
+    Instruction _instruction,
+    uint256 _positionId,
+    uint256 _orderPrice,
+    address _withdrawToken,
+    address _withdrawAddress
+  ) external {
+    // todo check if msg.sender is the owner/user of the position
+
+    CloseOrder memory newCloseOrder = CloseOrder({
+      instruction: _instruction,
+      positionId: _positionId,
+      orderPrice: _orderPrice,
+      withdrawToken: _withdrawToken,
+      withdrawAddress: _withdrawAddress
+    });
+
+    // mint a new position NFT to the user
+    uint256 tokenId = totalMinted();
+    orderTypes[tokenId] = OrderType.CLOSE;
+    closeOrders[tokenId] = newCloseOrder;
+
+    _mint(msg.sender, tokenId);
+
+    emit CloseOrderCreated(
+      msg.sender,
+      tokenId,
+      _instruction,
+      _orderPrice,
+      _positionId,
+      _withdrawToken
+    );
+  }
+
   function executeOrder(uint256 _tokenId) external {
     // execute the order in trade contract
-    // get the order
-    TradeOrder memory traderOrder = tradeOrders[_tokenId];
+    OrderType orderType = orderTypes[_tokenId];
 
-    // check if the price now can execute the order
-    require(_canExecuteOrder(_tokenId), "order entry price not met");
-
-    // transfer the rest of the deposit from the order owner
-    try
-      atm.transferFrom(
-        traderOrder.depositToken,
-        ownerOf(_tokenId),
-        address(this),
-        traderOrder.totalDepositAmount - traderOrder.depositAmount
-      )
-    {
-      traderOrder.depositAmount +=
-        traderOrder.totalDepositAmount -
-        traderOrder.depositAmount;
-    } catch {
-      // if cannot receive deposit, deduct 1% from deposit as penalty, send the rest back to the user
-      _closeOrder(_tokenId, false);
-      return;
-    }
-
-    try
-      trade.createPosition(
-        ownerOf(_tokenId),
-        traderOrder.indexPair,
-        traderOrder.tradeType,
-        traderOrder.size,
-        traderOrder.depositToken,
-        traderOrder.depositAmount
-      )
-    {
-      // close the order on successful execution
-      _closeOrder(_tokenId, true);
-    } catch {
-      // if the position cannot be executed, send back the fund to user
-      atm.transferFrom(
-        traderOrder.depositToken,
-        address(this),
-        ownerOf(_tokenId),
-        traderOrder.depositAmount
-      );
-      _closeOrder(_tokenId, false);
+    if (orderType == OrderType.OPEN) {
+      _executeOpenOrder(_tokenId);
+    } else if (orderType == OrderType.CLOSE) {
+      _executeCloseOrder(_tokenId);
     }
   }
 
   function updateOrderSize(uint256 _tokenId, uint256 _size) external {
     //todo check again the leverage margin
-    tradeOrders[_tokenId].size = _size;
+    // check if order is open order
+    require(orderTypes[_tokenId] == OrderType.OPEN, "not open order");
+    openOrders[_tokenId].size = _size;
   }
 
   function updateOrderDeposit(
@@ -150,43 +154,47 @@ abstract contract BaseTradeOrder is IBaseTradeOrder, ERC721T, FundWithdrawable {
     uint256 _updatedTotalDepositAmount,
     uint256 _updatedDepositAmount
   ) external {
-    TradeOrder memory tradeOrder = tradeOrders[_tokenId];
-    if (tradeOrder.totalDepositAmount != _updatedTotalDepositAmount) {
+    // check if order is open order
+    require(orderTypes[_tokenId] == OrderType.OPEN, "not open order");
+
+    OpenOrder memory openOrder = openOrders[_tokenId];
+
+    if (openOrder.totalDepositAmount != _updatedTotalDepositAmount) {
       //todo check again the leverage margin
-      tradeOrder.totalDepositAmount = _updatedTotalDepositAmount;
+      openOrder.totalDepositAmount = _updatedTotalDepositAmount;
     }
     //! accept only full deposit now
     atm.transferFrom(
-      tradeOrder.depositToken,
+      openOrder.depositToken,
       ownerOf(_tokenId),
       address(this),
-      _updatedTotalDepositAmount - tradeOrder.totalDepositAmount
+      _updatedTotalDepositAmount - openOrder.totalDepositAmount
     );
     return;
 
-    if (_updatedDepositAmount == tradeOrder.depositAmount) return;
+    if (_updatedDepositAmount == openOrder.depositAmount) return;
 
     // increase deposit
-    if (_updatedDepositAmount > tradeOrder.depositAmount) {
+    if (_updatedDepositAmount > openOrder.depositAmount) {
       //todo check if the user is depositing more than he should
       // receive the extra deposit amount
       atm.transferFrom(
-        tradeOrder.depositToken,
+        openOrder.depositToken,
         ownerOf(_tokenId),
         address(this),
-        _updatedDepositAmount - tradeOrder.depositAmount
+        _updatedDepositAmount - openOrder.depositAmount
       );
       return;
     }
 
-    if (_updatedDepositAmount < tradeOrder.depositAmount) {
+    if (_updatedDepositAmount < openOrder.depositAmount) {
       //todo check the deposit ratio
       // give the user their deposit back
       atm.transferFrom(
-        tradeOrder.depositToken,
+        openOrder.depositToken,
         ownerOf(_tokenId),
         address(this),
-        tradeOrder.depositAmount - _updatedDepositAmount
+        openOrder.depositAmount - _updatedDepositAmount
       );
     }
   }
@@ -196,62 +204,116 @@ abstract contract BaseTradeOrder is IBaseTradeOrder, ERC721T, FundWithdrawable {
   }
 
   // ---------- view functions ----------
-  function getOrderMetadata(uint256 _tokenId)
-    external
-    view
-    returns (TradeOrder memory)
-  {
-    return tradeOrders[_tokenId];
-  }
 
   // ---------- internal functions ----------
+  function _executeOpenOrder(uint256 _tokenId) internal {
+    OpenOrder memory openOrder = openOrders[_tokenId];
+
+    // check if the price now can execute the order
+    require(_canExecuteOrder(_tokenId), "order entry price not met");
+
+    // // transfer the rest of the deposit from the order owner
+    // try
+    //   atm.transferFrom(
+    //     openOrder.depositToken,
+    //     ownerOf(_tokenId),
+    //     address(this),
+    //     openOrder.totalDepositAmount - openOrder.depositAmount
+    //   )
+    // {
+    //   openOrder.depositAmount +=
+    //     openOrder.totalDepositAmount -
+    //     openOrder.depositAmount;
+    // } catch {
+    //   // if cannot receive deposit, deduct 1% from deposit as penalty, send the rest back to the user
+    //   _closeOrder(_tokenId, false);
+    //   return;
+    // }
+
+    try
+      trade.createPosition(
+        ownerOf(_tokenId),
+        openOrder.indexPair,
+        openOrder.tradeType,
+        openOrder.size,
+        openOrder.depositToken,
+        openOrder.depositAmount
+      )
+    {
+      // close the order on successful execution
+      _closeOrder(_tokenId, true);
+    } catch {
+      // if the position cannot be executed, send back the fund to user
+      atm.transferFrom(
+        openOrder.depositToken,
+        address(this),
+        ownerOf(_tokenId),
+        openOrder.depositAmount
+      );
+      _closeOrder(_tokenId, false);
+    }
+  }
+
+  function _executeCloseOrder(uint256 _tokenId) internal {
+    CloseOrder memory closeOrder = closeOrders[_tokenId];
+
+    trade.closePosition(
+      closeOrder.positionId,
+      closeOrder.withdrawToken,
+      closeOrder.withdrawAddress
+    );
+  }
+
   function _closeOrder(uint256 _tokenId, bool executed) internal {
     _burn(_tokenId);
-    delete tradeOrders[_tokenId];
-    emit TradeOrderClosed(_tokenId, executed);
+    // delete the metadata
+    OrderType orderType = orderTypes[_tokenId];
+    if (orderType == OrderType.OPEN) {
+      delete openOrders[_tokenId];
+    } else if (orderType == OrderType.CLOSE) {
+      delete closeOrders[_tokenId];
+    }
+    delete orderTypes[_tokenId];
+    emit OrderClosed(_tokenId, executed);
   }
 
   function _canExecuteOrder(uint256 _tokenId) internal view returns (bool) {
-    TradeOrder memory traderOrder = tradeOrders[_tokenId];
+    return true;
+    OpenOrder memory openOrder = openOrders[_tokenId];
 
     // get the current price of the index pair
     uint256 currentPairPrice = priceFeed.getPairLatestPrice(
-      traderOrder.indexPair,
-      traderOrder.tradeType == IBaseTrade.TradeType.LONG
+      openOrder.indexPair,
+      openOrder.tradeType == IBaseTrade.TradeType.LONG
         ? ISimplePriceFeed.Spread.HIGH
         : ISimplePriceFeed.Spread.LOW
     );
 
     // return true for market order
-    if (traderOrder.orderType == OrderType.MARKET) {
+    if (openOrder.instruction == Instruction.MARKET) {
       return true;
     }
 
     // for long order
-    if (traderOrder.tradeType == IBaseTrade.TradeType.LONG) {
-      return currentPairPrice >= traderOrder.orderEntryPrice;
+    if (openOrder.tradeType == IBaseTrade.TradeType.LONG) {
+      return currentPairPrice >= openOrder.orderPrice;
     }
     // for short order
-    return currentPairPrice <= traderOrder.orderEntryPrice;
+    return currentPairPrice <= openOrder.orderPrice;
   }
 
   // ---------- overriding functions ----------
-  function _mint(address _to, TradeOrder memory _order) internal {
-    uint256 tokenId = totalMinted();
-    tradeOrders[tokenId] = _order;
-    super._safeMint(_to, tokenId);
-  }
-
   function _beforeTokenTransfer(
     address from,
     address to,
     uint256 tokenId
   ) internal view override {
+    return;
     if (from == address(0) || to == address(0)) return;
 
-    TradeOrder memory traderOrder = tradeOrders[tokenId];
+    OpenOrder memory openOrder = openOrders[tokenId];
     require(
-      traderOrder.totalDepositAmount == traderOrder.depositAmount,
+      openOrder.totalDepositAmount == openOrder.depositAmount,
       "cannot transfer under deposit order"
     );
   }

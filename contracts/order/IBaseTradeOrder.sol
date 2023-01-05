@@ -6,26 +6,39 @@ import "../trade/IBaseTrade.sol";
 interface IBaseTradeOrder {
   // ---------- custom datatypes ----------
   enum OrderType {
+    OPEN,
+    CLOSE
+  }
+
+  enum Instruction {
     LIMIT,
     MARKET
   }
 
-  struct TradeOrder {
-    OrderType orderType;
-    uint256 orderEntryPrice;
-    uint256 indexPair;
+  struct OpenOrder {
+    Instruction instruction;
     IBaseTrade.TradeType tradeType;
+    uint256 indexPair;
+    uint256 orderPrice;
     uint256 size;
     address depositToken;
     uint256 depositAmount;
     uint256 totalDepositAmount;
   }
 
+  struct CloseOrder {
+    Instruction instruction;
+    uint256 positionId;
+    uint256 orderPrice;
+    address withdrawToken;
+    address withdrawAddress;
+  }
+
   // ---------- events ----------
-  event TradeOrderCreated(
+  event OpenOrderCreated(
     address indexed account,
     uint256 tokenId,
-    OrderType orderType,
+    Instruction orderType,
     uint256 orderEntryPrice,
     uint256 indexPair,
     IBaseTrade.TradeType tradeType,
@@ -35,11 +48,20 @@ interface IBaseTradeOrder {
     uint256 totalDepositAmount
   );
 
-  event TradeOrderClosed(uint256 tokenId, bool executed);
+  event CloseOrderCreated(
+    address indexed account,
+    uint256 tokenId,
+    Instruction instruction,
+    uint256 orderPrice,
+    uint256 positionId,
+    address withdrawToken
+  );
+
+  event OrderClosed(uint256 tokenId, bool executed);
 
   // ---------- action functions ----------
-  function createOrder(
-    OrderType _orderType,
+  function createOpenOrder(
+    Instruction _instruction,
     uint256 _orderEntryPrice,
     uint256 _indexPair,
     IBaseTrade.TradeType _tradeType,
@@ -47,6 +69,14 @@ interface IBaseTradeOrder {
     address _depositToken,
     uint256 _depositAmount,
     uint256 _collateralAmount
+  ) external;
+
+  function createCloseOrder(
+    Instruction _instruction,
+    uint256 _positionId,
+    uint256 _orderExitPrice,
+    address _withdrawToken,
+    address _withdrawAddress
   ) external;
 
   function executeOrder(uint256 _tokenId) external;
