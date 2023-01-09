@@ -570,6 +570,19 @@ contract ERC721T is Context, ERC165, IERC721T, IERC721TMetadata {
     return _ownedTokens[owner][index];
   }
 
+  function tokenIdsOfOwner(address owner)
+    external
+    view
+    returns (uint256[] memory)
+  {
+    uint256 tokenCount = ERC721T.balanceOf(owner);
+    uint256[] memory tokenIds = new uint256[](tokenCount);
+    for (uint256 i = 0; i < tokenCount; i++) {
+      tokenIds[i] = _ownedTokens[owner][i];
+    }
+    return tokenIds;
+  }
+
   function tokenByIndex(uint256 index) external view returns (uint256) {
     require(index < _totalSupply, "ERC721T: index out of bounds");
     return _allTokens[index];

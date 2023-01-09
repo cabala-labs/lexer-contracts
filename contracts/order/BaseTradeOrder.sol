@@ -10,7 +10,14 @@ import "../ERC721T/ERC721T.sol";
 import "../properties/FundWithdrawable.sol";
 import "../oracle/ISimplePriceFeed.sol";
 
-abstract contract BaseTradeOrder is IBaseTradeOrder, ERC721T, FundWithdrawable {
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+abstract contract BaseTradeOrder is
+  IBaseTradeOrder,
+  ERC721T,
+  FundWithdrawable,
+  Ownable
+{
   using TokenLibs for uint256;
   // ---------- contract storage ----------
   string public contractName;
@@ -22,6 +29,8 @@ abstract contract BaseTradeOrder is IBaseTradeOrder, ERC721T, FundWithdrawable {
   mapping(uint256 => OpenOrder) public openOrders;
   mapping(uint256 => CloseOrder) public closeOrders;
 
+  uint256 gas = 0.001 ether;
+
   // ---------- constructor ----------
   constructor(
     string memory _contractName,
@@ -32,6 +41,7 @@ abstract contract BaseTradeOrder is IBaseTradeOrder, ERC721T, FundWithdrawable {
       string.concat(_contractName, "_Order"),
       string.concat(_contractName, "_ORD")
     )
+    Ownable()
   {
     contractName = _contractName;
     atm = IATM(_atmAddress);
@@ -57,7 +67,10 @@ abstract contract BaseTradeOrder is IBaseTradeOrder, ERC721T, FundWithdrawable {
     address _depositToken,
     uint256 _depositAmount,
     uint256 _totalDepositAmount
-  ) external {
+  ) external payable {
+    require(msg.value == gas, "gas fee not met");
+    payable(owner()).transfer(msg.value);
+
     //! accept only full deposit now
     require(_totalDepositAmount == _depositAmount, "under deposit");
 
@@ -103,7 +116,9 @@ abstract contract BaseTradeOrder is IBaseTradeOrder, ERC721T, FundWithdrawable {
     uint256 _orderPrice,
     address _withdrawToken,
     address _withdrawAddress
-  ) external {
+  ) external payable {
+    require(msg.value == gas, "gas fee not met");
+    payable(owner()).transfer(msg.value);
     // todo check if msg.sender is the owner/user of the position
 
     CloseOrder memory newCloseOrder = CloseOrder({
@@ -203,6 +218,10 @@ abstract contract BaseTradeOrder is IBaseTradeOrder, ERC721T, FundWithdrawable {
     _closeOrder(_tokenId, false);
   }
 
+  function setGas(uint256 _gas) external onlyOwner {
+    gas = _gas;
+  }
+
   // ---------- view functions ----------
 
   // ---------- internal functions ----------
@@ -257,11 +276,17 @@ abstract contract BaseTradeOrder is IBaseTradeOrder, ERC721T, FundWithdrawable {
   function _executeCloseOrder(uint256 _tokenId) internal {
     CloseOrder memory closeOrder = closeOrders[_tokenId];
 
-    trade.closePosition(
-      closeOrder.positionId,
-      closeOrder.withdrawToken,
-      closeOrder.withdrawAddress
-    );
+    try
+      trade.closePosition(
+        closeOrder.positionId,
+        closeOrder.withdrawToken,
+        closeOrder.withdrawAddress
+      )
+    {
+      _closeOrder(_tokenId, true);
+    } catch {
+      _closeOrder(_tokenId, false);
+    }
   }
 
   function _closeOrder(uint256 _tokenId, bool executed) internal {

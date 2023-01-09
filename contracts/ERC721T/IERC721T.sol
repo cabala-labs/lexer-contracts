@@ -182,6 +182,16 @@ interface IERC721T is IERC165 {
     returns (uint256);
 
   /**
+   * @dev Returns all the token IDs owned by `owner` at a given `index` of its token list.
+   * The list is unsorted
+   * Zero address is valid
+   */
+  function tokenIdsOfOwner(address owner)
+    external
+    view
+    returns (uint256[] memory);
+
+  /**
    * @dev Returns a token ID at a given `index` of all the unburnt tokens
    * Use along with {totalSupply} to enumerate all tokens.
    */

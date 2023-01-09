@@ -6,13 +6,14 @@ import { BigNumber } from "ethers";
 
 import { _initialDeploymentFixture } from "../deploy.utils";
 import { pairs, findPairIndex } from "../oracle/pairs.constants";
+import { Instruction } from "hardhat/internal/hardhat-network/stack-traces/model";
 
 enum TradeType {
   LONG,
   SHORT,
 }
 
-enum OrderType {
+enum Instruction {
   LIMIT,
   MARKET,
 }
@@ -46,8 +47,8 @@ describe("EmeraldTrade.sol", function () {
 
       await emeraldTradeOrder
         .connect(accounts[0])
-        .createOrder(
-          OrderType.LIMIT,
+        .createOpenOrder(
+          Instruction.LIMIT,
           entryPrice,
           findPairIndex("EUR/USD"),
           TradeType.LONG,
@@ -65,15 +66,15 @@ describe("EmeraldTrade.sol", function () {
         accounts[0].address,
         0
       );
-      const orderMetadata = await emeraldTradeOrder.getOrderMetadata(orderId);
-      expect(orderMetadata[0]).to.be.equal(OrderType.LIMIT);
-      expect(orderMetadata[1]).to.be.equal(entryPrice);
-      expect(orderMetadata[2]).to.be.equal(findPairIndex("EUR/USD"));
-      expect(orderMetadata[3]).to.be.equal(TradeType.LONG);
-      expect(orderMetadata[4]).to.be.equal(sizeAmount);
-      expect(orderMetadata[5]).to.be.equal(usdc.address);
-      expect(orderMetadata[6]).to.be.equal(collateralAmount);
-      expect(orderMetadata[7]).to.be.equal(collateralAmount);
+      const orderMetadata = await emeraldTradeOrder.openOrders(orderId);
+      expect(orderMetadata.instruction).to.be.equal(Instruction.LIMIT);
+      expect(orderMetadata.orderPrice).to.be.equal(entryPrice);
+      expect(orderMetadata.indexPair).to.be.equal(findPairIndex("EUR/USD"));
+      expect(orderMetadata.tradeType).to.be.equal(TradeType.LONG);
+      expect(orderMetadata.size).to.be.equal(sizeAmount);
+      expect(orderMetadata.depositToken).to.be.equal(usdc.address);
+      expect(orderMetadata.depositAmount).to.be.equal(collateralAmount);
+      expect(orderMetadata.totalDepositAmount).to.be.equal(collateralAmount);
 
       // execute the order
       const feedingPairs = [findPairIndex("EUR/USD")];

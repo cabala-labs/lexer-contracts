@@ -23,11 +23,11 @@ contract BatchMint {
   }
 
   function getToken() external {
-    require(claimedRound[msg.sender] < roundId, "Address already Claimed");
+    require(claimedRound[tx.origin] < roundId, "Address already Claimed");
     claimedRound[msg.sender] = roundId;
-    (wethAddress).mint(tx.origin, 6 * 1e18);
-    (usdcAddress).mint(tx.origin, 6000 * 1e6);
-    (wbtcAddress).mint(tx.origin, 6 * 1e7);
+    (wethAddress).mint(tx.origin, 3 * 1e18);
+    (usdcAddress).mint(tx.origin, 3000 * 1e6);
+    (wbtcAddress).mint(tx.origin, 3 * 1e7);
   }
 
   function setUSDCAddress(address _usdcAddress) external {

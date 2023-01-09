@@ -38,7 +38,7 @@ interface IBaseTradeOrder {
   event OpenOrderCreated(
     address indexed account,
     uint256 tokenId,
-    Instruction orderType,
+    Instruction instruction,
     uint256 orderEntryPrice,
     uint256 indexPair,
     IBaseTrade.TradeType tradeType,
@@ -69,7 +69,7 @@ interface IBaseTradeOrder {
     address _depositToken,
     uint256 _depositAmount,
     uint256 _collateralAmount
-  ) external;
+  ) external payable;
 
   function createCloseOrder(
     Instruction _instruction,
@@ -77,7 +77,7 @@ interface IBaseTradeOrder {
     uint256 _orderExitPrice,
     address _withdrawToken,
     address _withdrawAddress
-  ) external;
+  ) external payable;
 
   function executeOrder(uint256 _tokenId) external;
 
