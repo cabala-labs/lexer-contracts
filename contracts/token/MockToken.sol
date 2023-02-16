@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "hardhat/console.sol";
 
 contract MockToken is ERC20 {
   constructor(
@@ -17,8 +18,12 @@ contract MockToken is ERC20 {
 
   mapping(address => bool) allowedAddress;
 
-  function setAllowedAddress(address _address, bool _flag) external {
+  modifier onlyAllowed() {
     require(allowedAddress[msg.sender], "Not allowed");
+    _;
+  }
+
+  function setAllowedAddress(address _address, bool _flag) external {
     allowedAddress[_address] = _flag;
   }
 
@@ -30,8 +35,29 @@ contract MockToken is ERC20 {
     decimals_ = _decimal;
   }
 
-  function mint(address _to, uint256 _amount) public {
-    require(allowedAddress[msg.sender], "Not allowed to mint");
+  function mint(address _to, uint256 _amount) public onlyAllowed {
     super._mint(_to, _amount);
+  }
+
+  function transfer(address to, uint256 amount)
+    public
+    override
+    onlyAllowed
+    returns (bool)
+  {
+    address owner = _msgSender();
+    _transfer(owner, to, amount);
+    return true;
+  }
+
+  function transferFrom(
+    address from,
+    address to,
+    uint256 amount
+  ) public override onlyAllowed returns (bool) {
+    address spender = _msgSender();
+    _spendAllowance(from, spender, amount);
+    _transfer(from, to, amount);
+    return true;
   }
 }
