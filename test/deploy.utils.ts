@@ -230,6 +230,37 @@ export async function _initialDeploymentFixture() {
     ethers.utils.parseUnits("100000000000", 6)
   );
 
+  // add allowed address (for paper trading competition)
+
+  await usdc.setAllowedAddress(atm.address, true);
+  await wbtc.setAllowedAddress(atm.address, true);
+  await weth.setAllowedAddress(atm.address, true);
+  await usdc.setAllowedAddress(sapphireTrade.address, true);
+  await wbtc.setAllowedAddress(sapphireTrade.address, true);
+  await weth.setAllowedAddress(sapphireTrade.address, true);
+  await usdc.setAllowedAddress(sapphireTradeOrder.address, true);
+  await wbtc.setAllowedAddress(sapphireTradeOrder.address, true);
+  await weth.setAllowedAddress(sapphireTradeOrder.address, true);
+  await usdc.setAllowedAddress(sapphirePool.address, true);
+  await wbtc.setAllowedAddress(sapphirePool.address, true);
+  await weth.setAllowedAddress(sapphirePool.address, true);
+  await usdc.setAllowedAddress(sapphireReward.address, true);
+  await wbtc.setAllowedAddress(sapphireReward.address, true);
+  await weth.setAllowedAddress(sapphireReward.address, true);
+
+  await usdc.setAllowedAddress(emeraldTrade.address, true);
+  await wbtc.setAllowedAddress(emeraldTrade.address, true);
+  await weth.setAllowedAddress(emeraldTrade.address, true);
+  await usdc.setAllowedAddress(emeraldTradeOrder.address, true);
+  await wbtc.setAllowedAddress(emeraldTradeOrder.address, true);
+  await weth.setAllowedAddress(emeraldTradeOrder.address, true);
+  await usdc.setAllowedAddress(emeraldPool.address, true);
+  await wbtc.setAllowedAddress(emeraldPool.address, true);
+  await weth.setAllowedAddress(emeraldPool.address, true);
+  await usdc.setAllowedAddress(emeraldReward.address, true);
+  await wbtc.setAllowedAddress(emeraldReward.address, true);
+  await weth.setAllowedAddress(emeraldReward.address, true);
+
   return {
     owner,
     accounts,

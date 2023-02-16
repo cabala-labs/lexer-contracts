@@ -22,6 +22,16 @@ describe.only("SapphireTrade.sol", function () {
   describe("Revert", function () {});
   describe("Events", function () {});
   describe("Functions", function () {
+    it("transfer 1 weth to other wallet", async function () {
+      const { weth, accounts } = await loadFixture(_initialDeploymentFixture);
+      const [signer] = await ethers.getSigners();
+      await weth.mint(accounts[0].address, ethers.utils.parseEther("10"));
+      await expect(
+        weth
+          .connect(accounts[0])
+          .transfer(signer.address, ethers.utils.parseEther("1"))
+      ).to.be.revertedWith("Not allowed");
+    });
     it("open a long trade of 1 eth", async function () {
       const {
         sapphireTrade,
@@ -422,7 +432,7 @@ describe.only("SapphireTrade.sol", function () {
           collateralAmount,
           collateralAmount,
           {
-            value: ethers.utils.parseEther("0.0004"),
+            value: ethers.utils.parseEther("0.001"),
           }
         );
 
@@ -518,7 +528,7 @@ describe.only("SapphireTrade.sol", function () {
       return;
     });
 
-    it.only("open a short trade of 5100 usdc for 9 btc at limit order, and got liquidated", async function () {
+    it("open a short trade of 5100 usdc for 9 btc at limit order, and got liquidated", async function () {
       const {
         sapphireTrade,
         sapphireTradeOrder,
@@ -553,7 +563,7 @@ describe.only("SapphireTrade.sol", function () {
           collateralAmount,
           collateralAmount,
           {
-            value: ethers.utils.parseEther("0.0004"),
+            value: ethers.utils.parseEther("0.001"),
           }
         );
 
