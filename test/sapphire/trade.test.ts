@@ -54,7 +54,10 @@ describe.only("SapphireTrade.sol", function () {
           sizeAmount,
           weth.address,
           collateralAmount,
-          collateralAmount
+          collateralAmount,
+          {
+            value: ethers.utils.parseEther("0.001"),
+          }
         );
 
       // check if a new order is created and its metadata
@@ -155,7 +158,10 @@ describe.only("SapphireTrade.sol", function () {
           sizeAmount,
           weth.address,
           collateralAmount,
-          collateralAmount
+          collateralAmount,
+          {
+            value: ethers.utils.parseEther("0.001"),
+          }
         );
 
       // check if a new order is created and its metadata
@@ -256,7 +262,10 @@ describe.only("SapphireTrade.sol", function () {
           sizeAmount,
           weth.address,
           collateralAmount,
-          collateralAmount
+          collateralAmount,
+          {
+            value: ethers.utils.parseEther("0.001"),
+          }
         );
 
       // check if a new order is created and its metadata
@@ -334,7 +343,10 @@ describe.only("SapphireTrade.sol", function () {
           nftId,
           closePrice,
           weth.address,
-          accounts[0].address
+          accounts[0].address,
+          {
+            value: ethers.utils.parseEther("0.001"),
+          }
         );
 
       // check if a new order is created and its metadata
@@ -373,6 +385,266 @@ describe.only("SapphireTrade.sol", function () {
 
       // check if the position is closed
       expect(await sapphireTrade.balanceOf(accounts[0].address)).to.be.equal(0);
+    });
+
+    it("open a short trade of 4000 usdc at limit order, and got liquidated", async function () {
+      const {
+        sapphireTrade,
+        sapphireTradeOrder,
+        simplePriceFeed,
+        usdc,
+        atm,
+        accounts,
+      } = await loadFixture(_initialDeploymentFixture);
+
+      // get 4000 usdc
+      await usdc.mint(accounts[0].address, ethers.utils.parseUnits("4000", 6));
+
+      // approve lexer to spend usdc
+      await usdc
+        .connect(accounts[0])
+        .approve(atm.address, ethers.constants.MaxUint256);
+
+      // open a trade order of 4000 usdc short and entry at 1,327.11
+      const entryPrice = ethers.utils.parseEther("1327.11");
+      const sizeAmount = ethers.utils.parseEther("45");
+      const collateralAmount = ethers.utils.parseUnits("4000", 6);
+
+      await sapphireTradeOrder
+        .connect(accounts[0])
+        .createOpenOrder(
+          Instruction.LIMIT,
+          entryPrice,
+          findPairIndex("WETH/USD"),
+          TradeType.SHORT,
+          sizeAmount,
+          usdc.address,
+          collateralAmount,
+          collateralAmount,
+          {
+            value: ethers.utils.parseEther("0.0004"),
+          }
+        );
+
+      // check if a new order is created and its metadata
+      expect(await sapphireTradeOrder.balanceOf(accounts[0].address)).to.equal(
+        1
+      );
+      const orderId = await sapphireTradeOrder.tokenOfOwnerByIndex(
+        accounts[0].address,
+        0
+      );
+      const orderMetadata = await sapphireTradeOrder.openOrders(orderId);
+
+      expect(orderMetadata.instruction).to.be.equal(Instruction.LIMIT);
+      expect(orderMetadata.orderPrice).to.be.equal(entryPrice);
+      expect(orderMetadata.indexPair).to.be.equal(findPairIndex("WETH/USD"));
+      expect(orderMetadata.tradeType).to.be.equal(TradeType.SHORT);
+      expect(orderMetadata.size).to.be.equal(sizeAmount);
+      expect(orderMetadata.depositToken).to.be.equal(usdc.address);
+      expect(orderMetadata.depositAmount).to.be.equal(collateralAmount);
+      expect(orderMetadata.totalDepositAmount).to.be.equal(collateralAmount);
+
+      // execute the order
+      const feedingPairs = [findPairIndex("WETH/USD")];
+      const feedingPrices = [ethers.utils.parseEther("1327.11")];
+      const callbackAddress = sapphireTradeOrder.address;
+      const executeABI = ["function executeOrder(uint256 _tokenId)"];
+      const executeInterface = new ethers.utils.Interface(executeABI);
+      const callbackSignature = executeInterface.encodeFunctionData(
+        "executeOrder",
+        [orderId]
+      );
+
+      await simplePriceFeed.setPairsLatestPricesWithCallback(
+        feedingPairs,
+        feedingPrices,
+        callbackAddress,
+        callbackSignature
+      );
+
+      // check if the position is opened
+      // check if the contract has received the collateral
+      expect(await usdc.balanceOf(sapphireTrade.address)).to.equal(
+        collateralAmount
+      );
+
+      // check if the balance of the nft is 1
+      expect(await sapphireTrade.balanceOf(accounts[0].address)).to.be.equal(1);
+
+      // check the metadata of the nft
+      const nftId = await sapphireTrade.tokenOfOwnerByIndex(
+        accounts[0].address,
+        0
+      );
+      const nftMetadata = await sapphireTrade.getPositionMetadata(nftId);
+      expect(nftMetadata.indexPair).to.be.equal(2);
+      expect(nftMetadata.tradeType).to.be.equal(1);
+      expect(nftMetadata.entryPrice).to.be.equal(
+        ethers.utils.parseEther("1327.11")
+      );
+      expect(nftMetadata.size).to.be.equal(sizeAmount);
+      expect(nftMetadata.totalCollateralBalance).to.be.equal(
+        collateralAmount.mul(BigNumber.from(10).pow(12))
+      );
+      expect(nftMetadata.exitPrice).to.be.equal(0);
+      expect(nftMetadata.incurredFee).to.be.equal(0);
+      expect(nftMetadata.lastBorrowRate).to.be.equal(0);
+
+      // find the liquidation price
+      // const liquidationPrice = await sapphireTrade.getLiquidationPrice(
+      const liquidationPrice = nftMetadata.totalCollateralBalance
+        .mul(999)
+        .div(1000)
+        .mul(BigNumber.from(10).pow(18))
+        .div(nftMetadata.size)
+        .add(entryPrice);
+
+      const liquidationCallbackAddress = sapphireTrade.address;
+      const liquidationCallbackSignature =
+        sapphireTrade.interface.encodeFunctionData("liquidatePosition", ["0"]);
+
+      const liquidationFeedingPairs = ["2"];
+      const liquidationFeedingPrices = [liquidationPrice];
+
+      const tx = await simplePriceFeed.setPairsLatestPricesWithCallback(
+        liquidationFeedingPairs,
+        liquidationFeedingPrices,
+        liquidationCallbackAddress,
+        liquidationCallbackSignature
+      );
+      await tx.wait();
+
+      return;
+    });
+
+    it.only("open a short trade of 5100 usdc for 9 btc at limit order, and got liquidated", async function () {
+      const {
+        sapphireTrade,
+        sapphireTradeOrder,
+        simplePriceFeed,
+        usdc,
+        atm,
+        accounts,
+      } = await loadFixture(_initialDeploymentFixture);
+
+      // get 5100 usdc
+      await usdc.mint(accounts[0].address, ethers.utils.parseUnits("5100", 6));
+
+      // approve lexer to spend usdc
+      await usdc
+        .connect(accounts[0])
+        .approve(atm.address, ethers.constants.MaxUint256);
+
+      // open a trade order of 5100 usdc short and entry at 17,196.4
+      const entryPrice = ethers.utils.parseEther("17196.4");
+      const sizeAmount = ethers.utils.parseUnits("9", 8);
+      const collateralAmount = ethers.utils.parseUnits("5100", 6);
+
+      await sapphireTradeOrder
+        .connect(accounts[0])
+        .createOpenOrder(
+          Instruction.LIMIT,
+          entryPrice,
+          findPairIndex("WBTC/USD"),
+          TradeType.SHORT,
+          sizeAmount,
+          usdc.address,
+          collateralAmount,
+          collateralAmount,
+          {
+            value: ethers.utils.parseEther("0.0004"),
+          }
+        );
+
+      // check if a new order is created and its metadata
+      expect(await sapphireTradeOrder.balanceOf(accounts[0].address)).to.equal(
+        1
+      );
+      const orderId = await sapphireTradeOrder.tokenOfOwnerByIndex(
+        accounts[0].address,
+        0
+      );
+      const orderMetadata = await sapphireTradeOrder.openOrders(orderId);
+
+      expect(orderMetadata.instruction).to.be.equal(Instruction.LIMIT);
+      expect(orderMetadata.orderPrice).to.be.equal(entryPrice);
+      expect(orderMetadata.indexPair).to.be.equal(findPairIndex("WBTC/USD"));
+      expect(orderMetadata.tradeType).to.be.equal(TradeType.SHORT);
+      expect(orderMetadata.size).to.be.equal(sizeAmount);
+      expect(orderMetadata.depositToken).to.be.equal(usdc.address);
+      expect(orderMetadata.depositAmount).to.be.equal(collateralAmount);
+      expect(orderMetadata.totalDepositAmount).to.be.equal(collateralAmount);
+
+      // execute the order
+      const feedingPairs = [findPairIndex("WBTC/USD")];
+      const feedingPrices = [ethers.utils.parseEther("17196.4")];
+      const callbackAddress = sapphireTradeOrder.address;
+      const executeABI = ["function executeOrder(uint256 _tokenId)"];
+      const executeInterface = new ethers.utils.Interface(executeABI);
+      const callbackSignature = executeInterface.encodeFunctionData(
+        "executeOrder",
+        [orderId]
+      );
+
+      await simplePriceFeed.setPairsLatestPricesWithCallback(
+        feedingPairs,
+        feedingPrices,
+        callbackAddress,
+        callbackSignature
+      );
+
+      // check if the position is opened
+      // check if the contract has received the collateral
+      expect(await usdc.balanceOf(sapphireTrade.address)).to.equal(
+        collateralAmount
+      );
+
+      // check if the balance of the nft is 1
+      expect(await sapphireTrade.balanceOf(accounts[0].address)).to.be.equal(1);
+
+      // check the metadata of the nft
+      const nftId = await sapphireTrade.tokenOfOwnerByIndex(
+        accounts[0].address,
+        0
+      );
+      const nftMetadata = await sapphireTrade.getPositionMetadata(nftId);
+      expect(nftMetadata.indexPair).to.be.equal(findPairIndex("WBTC/USD"));
+      expect(nftMetadata.tradeType).to.be.equal(TradeType.SHORT);
+      expect(nftMetadata.entryPrice).to.be.equal(entryPrice);
+      expect(nftMetadata.size).to.be.equal(sizeAmount);
+      expect(nftMetadata.totalCollateralBalance).to.be.equal(
+        collateralAmount.mul(BigNumber.from(10).pow(12))
+      );
+      expect(nftMetadata.exitPrice).to.be.equal(0);
+      expect(nftMetadata.incurredFee).to.be.equal(0);
+      expect(nftMetadata.lastBorrowRate).to.be.equal(0);
+
+      // find the liquidation price
+      // const liquidationPrice = await sapphireTrade.getLiquidationPrice(
+      const liquidationPrice = nftMetadata.totalCollateralBalance
+        .mul(999)
+        .div(1000)
+        .mul(BigNumber.from(10).pow(18))
+        .div(nftMetadata.size.mul(BigNumber.from(10).pow(10)))
+        .add(nftMetadata.entryPrice);
+
+      const liquidationCallbackAddress = sapphireTrade.address;
+      const liquidationCallbackSignature =
+        sapphireTrade.interface.encodeFunctionData("liquidatePosition", ["0"]);
+
+      const liquidationFeedingPairs = ["3"];
+      const liquidationFeedingPrices = [liquidationPrice];
+
+      const tx = await simplePriceFeed.setPairsLatestPricesWithCallback(
+        liquidationFeedingPairs,
+        liquidationFeedingPrices,
+        liquidationCallbackAddress,
+        liquidationCallbackSignature
+      );
+      await tx.wait();
+
+      return;
     });
   });
 });

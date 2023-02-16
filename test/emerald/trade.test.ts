@@ -6,7 +6,6 @@ import { BigNumber } from "ethers";
 
 import { _initialDeploymentFixture } from "../deploy.utils";
 import { pairs, findPairIndex } from "../oracle/pairs.constants";
-import { Instruction } from "hardhat/internal/hardhat-network/stack-traces/model";
 
 enum TradeType {
   LONG,
@@ -55,7 +54,10 @@ describe("EmeraldTrade.sol", function () {
           sizeAmount,
           usdc.address,
           collateralAmount,
-          collateralAmount
+          collateralAmount,
+          {
+            value: ethers.utils.parseEther("0.001"),
+          }
         );
 
       // check if a new order is created and its metadata
