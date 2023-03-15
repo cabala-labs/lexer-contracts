@@ -29,7 +29,7 @@ abstract contract BaseTrade is IBaseTrade, ERC721T, FundWithdrawable {
   uint256 public borrowInterval = 3600;
   mapping(uint256 => bool) public availablePairs;
   mapping(uint256 => Position) internal positions;
-  uint256 liquidationThreshold = 985 * 1e15; // 98.5% * 1e18
+  uint256 liquidationThreshold = 97 * 1e16; // 97% [0.97] * 1e18 = 97 * 1e16
 
   // ---------- constructor ----------
   constructor(
@@ -374,6 +374,8 @@ abstract contract BaseTrade is IBaseTrade, ERC721T, FundWithdrawable {
       isProfit = true;
     }
 
+    console.log("pairPrice", pairPrice, position.entryPrice, isProfit);
+
     // find the trading token of the pair
     address tradingToken = _getTradingToken(position.indexPair);
 
@@ -463,6 +465,7 @@ abstract contract BaseTrade is IBaseTrade, ERC721T, FundWithdrawable {
 
     console.log(
       "isPositionLiquidatable",
+      isProfit,
       positionPnL,
       positions[_tokenId].totalCollateralBalance.getRatio(liquidationThreshold)
     );

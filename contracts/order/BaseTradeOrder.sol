@@ -11,7 +11,7 @@ import "../properties/FundWithdrawable.sol";
 import "../oracle/ISimplePriceFeed.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-
+import "hardhat/console.sol";
 abstract contract BaseTradeOrder is
   IBaseTradeOrder,
   ERC721T,
@@ -29,7 +29,7 @@ abstract contract BaseTradeOrder is
   mapping(uint256 => OpenOrder) public openOrders;
   mapping(uint256 => CloseOrder) public closeOrders;
 
-  uint256 gas = 0.001 ether;
+  uint256 gas = 0.0002 ether;
 
   // ---------- constructor ----------
   constructor(
@@ -248,7 +248,6 @@ abstract contract BaseTradeOrder is
     //   _closeOrder(_tokenId, false);
     //   return;
     // }
-
     try
       trade.createPosition(
         ownerOf(_tokenId),
@@ -261,7 +260,8 @@ abstract contract BaseTradeOrder is
     {
       // close the order on successful execution
       _closeOrder(_tokenId, true);
-    } catch {
+    } catch Error(string memory reason){
+      console.log("error encountered", reason);
       // if the position cannot be executed, send back the fund to user
       atm.transferFrom(
         openOrder.depositToken,

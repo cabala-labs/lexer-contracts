@@ -70,7 +70,7 @@ contract SapphirePool is BasePool, ISwappablePool {
     );
 
     // get the amount of _tokenIn
-    atm.transferFrom(_tokenIn, msg.sender, _tokenOut, _amountIn);
+    atm.transferFrom(_tokenIn, msg.sender, address(this), _amountIn);
 
     // calculate the amount of _tokenOut
     _amountOut = _amountIn
